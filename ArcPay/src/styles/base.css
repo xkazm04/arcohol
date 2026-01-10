@@ -1,0 +1,682 @@
+/* ArcPay React SDK - Base Styles */
+
+.arcpay-root {
+  font-family: var(--arcpay-font-body);
+  color: var(--arcpay-color-text);
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.arcpay-root *,
+.arcpay-root *::before,
+.arcpay-root *::after {
+  box-sizing: inherit;
+}
+
+/* Button */
+.arcpay-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--arcpay-spacing-sm);
+  font-family: inherit;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.arcpay-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.arcpay-button--primary {
+  background-color: var(--arcpay-color-primary);
+  color: white;
+}
+
+.arcpay-button--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.arcpay-button--secondary {
+  background-color: var(--arcpay-color-secondary);
+  color: white;
+}
+
+.arcpay-button--secondary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.arcpay-button--outline {
+  background-color: transparent;
+  border: 1px solid var(--arcpay-color-border);
+  color: var(--arcpay-color-text);
+}
+
+.arcpay-button--outline:hover:not(:disabled) {
+  background-color: var(--arcpay-color-surface);
+}
+
+.arcpay-button--ghost {
+  background-color: transparent;
+  color: var(--arcpay-color-text);
+}
+
+.arcpay-button--ghost:hover:not(:disabled) {
+  background-color: var(--arcpay-color-surface);
+}
+
+.arcpay-button--sm {
+  padding: var(--arcpay-spacing-xs) var(--arcpay-spacing-sm);
+  font-size: 0.875rem;
+  border-radius: var(--arcpay-radius-sm);
+}
+
+.arcpay-button--md {
+  padding: var(--arcpay-spacing-sm) var(--arcpay-spacing-md);
+  font-size: 1rem;
+  border-radius: var(--arcpay-radius-md);
+}
+
+.arcpay-button--lg {
+  padding: var(--arcpay-spacing-md) var(--arcpay-spacing-lg);
+  font-size: 1.125rem;
+  border-radius: var(--arcpay-radius-md);
+}
+
+.arcpay-button--full-width {
+  width: 100%;
+}
+
+/* Input */
+.arcpay-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-xs);
+}
+
+.arcpay-input__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--arcpay-color-text);
+}
+
+.arcpay-input__container {
+  display: flex;
+  align-items: center;
+  background-color: var(--arcpay-color-surface);
+  border: 1px solid var(--arcpay-color-border);
+  border-radius: var(--arcpay-radius-md);
+  transition: border-color 0.2s ease;
+}
+
+.arcpay-input__container:focus-within {
+  border-color: var(--arcpay-color-primary);
+}
+
+.arcpay-input__container--error {
+  border-color: var(--arcpay-color-error);
+}
+
+.arcpay-input {
+  flex: 1;
+  padding: var(--arcpay-spacing-sm) var(--arcpay-spacing-md);
+  font-family: inherit;
+  font-size: 1rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--arcpay-color-text);
+}
+
+.arcpay-input::placeholder {
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-input__icon {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--arcpay-spacing-sm);
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-input__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.arcpay-input__error {
+  font-size: 0.75rem;
+  color: var(--arcpay-color-error);
+}
+
+.arcpay-input__hint {
+  font-size: 0.75rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+/* Modal */
+.arcpay-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--arcpay-spacing-md);
+}
+
+.arcpay-modal {
+  background-color: var(--arcpay-color-background);
+  border-radius: var(--arcpay-radius-lg);
+  box-shadow: var(--arcpay-shadow-lg);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.arcpay-modal--sm {
+  width: 100%;
+  max-width: 360px;
+}
+
+.arcpay-modal--md {
+  width: 100%;
+  max-width: 480px;
+}
+
+.arcpay-modal--lg {
+  width: 100%;
+  max-width: 640px;
+}
+
+.arcpay-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--arcpay-spacing-md);
+  border-bottom: 1px solid var(--arcpay-color-border);
+}
+
+.arcpay-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.arcpay-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--arcpay-spacing-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--arcpay-color-text-secondary);
+  border-radius: var(--arcpay-radius-sm);
+}
+
+.arcpay-modal__close:hover {
+  background-color: var(--arcpay-color-surface);
+}
+
+.arcpay-modal__close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.arcpay-modal__content {
+  padding: var(--arcpay-spacing-md);
+}
+
+/* Spinner */
+.arcpay-spinner {
+  animation: arcpay-spin 1s linear infinite;
+}
+
+.arcpay-spinner--sm {
+  width: 16px;
+  height: 16px;
+}
+
+.arcpay-spinner--md {
+  width: 24px;
+  height: 24px;
+}
+
+.arcpay-spinner--lg {
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes arcpay-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast */
+.arcpay-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--arcpay-spacing-sm);
+  padding: var(--arcpay-spacing-sm) var(--arcpay-spacing-md);
+  background-color: var(--arcpay-color-surface);
+  border-radius: var(--arcpay-radius-md);
+  box-shadow: var(--arcpay-shadow-md);
+}
+
+.arcpay-toast--success {
+  border-left: 4px solid var(--arcpay-color-success);
+}
+
+.arcpay-toast--error {
+  border-left: 4px solid var(--arcpay-color-error);
+}
+
+.arcpay-toast--warning {
+  border-left: 4px solid var(--arcpay-color-warning);
+}
+
+.arcpay-toast__icon {
+  display: flex;
+  align-items: center;
+}
+
+.arcpay-toast__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.arcpay-toast--success .arcpay-toast__icon {
+  color: var(--arcpay-color-success);
+}
+
+.arcpay-toast--error .arcpay-toast__icon {
+  color: var(--arcpay-color-error);
+}
+
+.arcpay-toast--warning .arcpay-toast__icon {
+  color: var(--arcpay-color-warning);
+}
+
+.arcpay-toast__message {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.arcpay-toast__close {
+  display: flex;
+  padding: var(--arcpay-spacing-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-toast__close svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Widget */
+.arcpay-widget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-md);
+  padding: var(--arcpay-spacing-lg);
+  background-color: var(--arcpay-color-background);
+  border: 1px solid var(--arcpay-color-border);
+  border-radius: var(--arcpay-radius-lg);
+}
+
+.arcpay-widget--disconnected {
+  text-align: center;
+}
+
+.arcpay-widget__message {
+  color: var(--arcpay-color-text-secondary);
+  margin-bottom: var(--arcpay-spacing-md);
+}
+
+.arcpay-widget__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--arcpay-spacing-sm);
+}
+
+/* Balance */
+.arcpay-balance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-xs);
+}
+
+.arcpay-balance__label {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-balance__value {
+  display: flex;
+  align-items: center;
+  gap: var(--arcpay-spacing-sm);
+  font-weight: 700;
+}
+
+.arcpay-balance--sm .arcpay-balance__value {
+  font-size: 1.25rem;
+}
+
+.arcpay-balance--md .arcpay-balance__value {
+  font-size: 1.5rem;
+}
+
+.arcpay-balance--lg .arcpay-balance__value {
+  font-size: 2rem;
+}
+
+.arcpay-balance__refresh {
+  display: flex;
+  padding: var(--arcpay-spacing-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-balance__refresh svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Address */
+.arcpay-address {
+  display: flex;
+  align-items: center;
+  gap: var(--arcpay-spacing-sm);
+  padding: var(--arcpay-spacing-sm) var(--arcpay-spacing-md);
+  background-color: var(--arcpay-color-surface);
+  border-radius: var(--arcpay-radius-md);
+}
+
+.arcpay-address__value {
+  font-family: var(--arcpay-font-mono);
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-address__copy {
+  display: flex;
+  padding: var(--arcpay-spacing-xs);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--arcpay-color-primary);
+}
+
+.arcpay-address__copy svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Transaction List */
+.arcpay-transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-sm);
+}
+
+.arcpay-transaction-list--loading,
+.arcpay-transaction-list--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--arcpay-spacing-xl);
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-transaction-list__items {
+  display: flex;
+  flex-direction: column;
+}
+
+.arcpay-transaction-list__load-more {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--arcpay-spacing-md);
+}
+
+/* Transaction Item */
+.arcpay-transaction-item {
+  display: flex;
+  align-items: center;
+  gap: var(--arcpay-spacing-md);
+  padding: var(--arcpay-spacing-md);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--arcpay-color-border);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background-color 0.2s ease;
+}
+
+.arcpay-transaction-item:hover {
+  background-color: var(--arcpay-color-surface);
+}
+
+.arcpay-transaction-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--arcpay-color-surface);
+  border-radius: var(--arcpay-radius-full);
+}
+
+.arcpay-transaction-item__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.arcpay-transaction-item__details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.arcpay-transaction-item__type {
+  font-weight: 500;
+}
+
+.arcpay-transaction-item__address {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-transaction-item__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.arcpay-transaction-item__amount {
+  font-weight: 600;
+}
+
+.arcpay-transaction-item__amount--inbound {
+  color: var(--arcpay-color-success);
+}
+
+.arcpay-transaction-item__amount--outbound {
+  color: var(--arcpay-color-text);
+}
+
+.arcpay-transaction-item__status {
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.arcpay-transaction-item__status--success {
+  color: var(--arcpay-color-success);
+}
+
+.arcpay-transaction-item__status--warning {
+  color: var(--arcpay-color-warning);
+}
+
+.arcpay-transaction-item__status--error {
+  color: var(--arcpay-color-error);
+}
+
+.arcpay-transaction-item__date {
+  font-size: 0.75rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+/* Confirm Modal */
+.arcpay-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-md);
+  text-align: center;
+}
+
+.arcpay-confirm__amount {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.arcpay-confirm__recipient {
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-confirm__description {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-confirm__actions {
+  display: flex;
+  gap: var(--arcpay-spacing-sm);
+  padding-top: var(--arcpay-spacing-md);
+}
+
+.arcpay-confirm__actions > * {
+  flex: 1;
+}
+
+/* Send Money Form */
+.arcpay-send-money {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-md);
+}
+
+.arcpay-send-money__currency {
+  font-weight: 500;
+}
+
+.arcpay-send-money__actions {
+  display: flex;
+  gap: var(--arcpay-spacing-sm);
+  padding-top: var(--arcpay-spacing-md);
+}
+
+/* Fund Wallet */
+.arcpay-fund-wallet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-md);
+}
+
+.arcpay-fund-wallet__presets {
+  display: flex;
+  gap: var(--arcpay-spacing-sm);
+}
+
+.arcpay-fund-wallet__preset {
+  flex: 1;
+  padding: var(--arcpay-spacing-sm);
+  background-color: var(--arcpay-color-surface);
+  border: 1px solid var(--arcpay-color-border);
+  border-radius: var(--arcpay-radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.arcpay-fund-wallet__preset:hover {
+  border-color: var(--arcpay-color-primary);
+}
+
+.arcpay-fund-wallet__preset--selected {
+  background-color: var(--arcpay-color-primary);
+  border-color: var(--arcpay-color-primary);
+  color: white;
+}
+
+.arcpay-fund-wallet__info {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+/* Cash Out */
+.arcpay-cash-out {
+  display: flex;
+  flex-direction: column;
+  gap: var(--arcpay-spacing-md);
+}
+
+.arcpay-cash-out__balance {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+.arcpay-cash-out__input-wrapper {
+  position: relative;
+}
+
+.arcpay-cash-out__max {
+  position: absolute;
+  right: var(--arcpay-spacing-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--arcpay-spacing-xs) var(--arcpay-spacing-sm);
+  background-color: var(--arcpay-color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--arcpay-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.arcpay-cash-out__info {
+  font-size: 0.875rem;
+  color: var(--arcpay-color-text-secondary);
+}
+
+/* Utility Classes */
+.arcpay-text-success {
+  color: var(--arcpay-color-success);
+}
+
+.arcpay-text-error {
+  color: var(--arcpay-color-error);
+}
+
+.arcpay-text-warning {
+  color: var(--arcpay-color-warning);
+}
