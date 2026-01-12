@@ -1,371 +1,177 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useWallet } from '@/mocks/MockArcPayProvider';
 
-interface WebhookEvent {
+interface Event {
+  id: string;
   type: string;
-  description: string;
-  payload: Record<string, unknown>;
-}
-
-const webhookEvents: WebhookEvent[] = [
-  {
-    type: 'payment.initiated',
-    description: 'Triggered when a payment is initiated',
-    payload: {
-      id: 'pay_1234567890',
-      type: 'payment.initiated',
-      timestamp: new Date().toISOString(),
-      data: {
-        paymentId: 'pay_1234567890',
-        amount: '99.99',
-        currency: 'USDC',
-        status: 'pending',
-        merchantId: 'merch_abc123',
-        customerId: 'cus_xyz789',
-      },
-    },
-  },
-  {
-    type: 'payment.completed',
-    description: 'Triggered when a payment is confirmed on-chain',
-    payload: {
-      id: 'pay_1234567890',
-      type: 'payment.completed',
-      timestamp: new Date().toISOString(),
-      data: {
-        paymentId: 'pay_1234567890',
-        amount: '99.99',
-        currency: 'USDC',
-        status: 'completed',
-        transactionHash: '0x' + 'a'.repeat(64),
-        merchantId: 'merch_abc123',
-        customerId: 'cus_xyz789',
-      },
-    },
-  },
-  {
-    type: 'payment.failed',
-    description: 'Triggered when a payment fails',
-    payload: {
-      id: 'pay_1234567890',
-      type: 'payment.failed',
-      timestamp: new Date().toISOString(),
-      data: {
-        paymentId: 'pay_1234567890',
-        amount: '99.99',
-        currency: 'USDC',
-        status: 'failed',
-        failureReason: 'insufficient_funds',
-        merchantId: 'merch_abc123',
-        customerId: 'cus_xyz789',
-      },
-    },
-  },
-  {
-    type: 'subscription.created',
-    description: 'Triggered when a subscription is created',
-    payload: {
-      id: 'sub_1234567890',
-      type: 'subscription.created',
-      timestamp: new Date().toISOString(),
-      data: {
-        subscriptionId: 'sub_1234567890',
-        planId: 'plan_pro_monthly',
-        customerId: 'cus_xyz789',
-        status: 'active',
-        currentPeriodStart: new Date().toISOString(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-    },
-  },
-  {
-    type: 'subscription.renewed',
-    description: 'Triggered when a subscription is renewed',
-    payload: {
-      id: 'sub_1234567890',
-      type: 'subscription.renewed',
-      timestamp: new Date().toISOString(),
-      data: {
-        subscriptionId: 'sub_1234567890',
-        planId: 'plan_pro_monthly',
-        customerId: 'cus_xyz789',
-        status: 'active',
-        invoiceId: 'inv_abc123',
-        amount: '29.99',
-      },
-    },
-  },
-  {
-    type: 'subscription.cancelled',
-    description: 'Triggered when a subscription is cancelled',
-    payload: {
-      id: 'sub_1234567890',
-      type: 'subscription.cancelled',
-      timestamp: new Date().toISOString(),
-      data: {
-        subscriptionId: 'sub_1234567890',
-        planId: 'plan_pro_monthly',
-        customerId: 'cus_xyz789',
-        status: 'cancelled',
-        cancelledAt: new Date().toISOString(),
-        reason: 'customer_request',
-      },
-    },
-  },
-  {
-    type: 'wallet.created',
-    description: 'Triggered when a new wallet is created',
-    payload: {
-      id: 'wallet_1234567890',
-      type: 'wallet.created',
-      timestamp: new Date().toISOString(),
-      data: {
-        walletId: 'wallet_1234567890',
-        address: '0x' + 'b'.repeat(40),
-        chain: 'arc',
-        type: 'circle',
-      },
-    },
-  },
-  {
-    type: 'transfer.completed',
-    description: 'Triggered when a transfer is confirmed',
-    payload: {
-      id: 'tx_1234567890',
-      type: 'transfer.completed',
-      timestamp: new Date().toISOString(),
-      data: {
-        transactionId: 'tx_1234567890',
-        transactionHash: '0x' + 'c'.repeat(64),
-        amount: '50.00',
-        currency: 'USDC',
-        fromAddress: '0x' + 'd'.repeat(40),
-        toAddress: '0x' + 'e'.repeat(40),
-        status: 'completed',
-      },
-    },
-  },
-];
-
-function generateSignature(payload: string, secret: string): string {
-  // Simulated HMAC signature
-  const encoder = new TextEncoder();
-  const payloadBytes = encoder.encode(payload);
-  const secretBytes = encoder.encode(secret);
-
-  // Simple hash simulation (in real implementation use HMAC-SHA256)
-  let hash = 0;
-  for (let i = 0; i < payloadBytes.length; i++) {
-    hash = ((hash << 5) - hash) + payloadBytes[i] + secretBytes[i % secretBytes.length];
-    hash = hash & hash;
-  }
-
-  const hexHash = Math.abs(hash).toString(16).padStart(64, '0');
-  return `sha256=${hexHash}`;
+  timestamp: string;
+  status: number;
+  payload: Record<string, any>;
 }
 
 export default function WebhooksPage() {
-  const [selectedEvent, setSelectedEvent] = useState<WebhookEvent>(webhookEvents[0]);
-  const [webhookSecret, setWebhookSecret] = useState('whsec_test_secret_key_12345');
-  const [customPayload, setCustomPayload] = useState('');
-  const [sentWebhooks, setSentWebhooks] = useState<Array<{ event: string; timestamp: string; status: 'success' | 'error' }>>([]);
-  const [webhookUrl, setWebhookUrl] = useState('https://your-app.com/api/webhooks/arcpay');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const currentPayload = customPayload || JSON.stringify(selectedEvent.payload, null, 2);
-  const signature = generateSignature(currentPayload, webhookSecret);
+  // Simulation logic
+  useEffect(() => {
+    if (!isLive) return;
+    const interval = setInterval(() => {
+      const types = ['payment.created', 'payment.succeeded', 'subscription.updated', 'transfer.completed'];
+      const newEvent: Event = {
+        id: Math.random().toString(36).substring(7),
+        type: types[Math.floor(Math.random() * types.length)],
+        timestamp: new Date().toISOString(),
+        status: Math.random() > 0.9 ? 400 : 200,
+        payload: { amount: Math.floor(Math.random() * 1000), currency: 'USD' }
+      };
+      setEvents(prev => [newEvent, ...prev].slice(0, 50));
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isLive]);
 
-  const simulateSend = () => {
-    setSentWebhooks((prev) => [
-      { event: selectedEvent.type, timestamp: new Date().toISOString(), status: 'success' },
-      ...prev.slice(0, 9),
-    ]);
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+  const selectedEvent = events.find(e => e.id === selectedId) || events[0];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Webhook Simulator</h1>
-        <p className="text-zinc-400">
-          Test your webhook integration by simulating events. Generate payloads and verify signatures.
-        </p>
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-2">Webhooks</h1>
+          <p className="text-sm text-slate-400 max-w-xl">Simulate payment events, test your webhook endpoints, and verify payload signatures. Essential for building reliable server-side integrations that respond to transactions in real-time.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setEvents([])}
+            className="px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            Clear Logs
+          </button>
+          <button
+            onClick={() => setIsLive(!isLive)}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${isLive
+                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                : 'bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20'
+              }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-red-500 animate-pulse' : 'bg-black'}`} />
+            {isLive ? 'STOP LISTENING' : 'START LISTENING'}
+          </button>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Event Selector */}
-        <div className="lg:col-span-1">
-          <h2 className="text-lg font-semibold text-white mb-4">Event Types</h2>
-          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-            {webhookEvents.map((event) => (
-              <button
-                key={event.type}
-                onClick={() => {
-                  setSelectedEvent(event);
-                  setCustomPayload('');
-                }}
-                className={`w-full text-left p-3 rounded-xl border transition-all ${
-                  selectedEvent.type === event.type
-                    ? 'bg-purple-500/10 border-purple-500/30 text-white'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                <div className="font-mono text-sm text-purple-400 mb-1">{event.type}</div>
-                <div className="text-xs">{event.description}</div>
-              </button>
-            ))}
+      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+        {/* Left Panel: Event Stream */}
+        <div className="col-span-4 flex flex-col gap-4">
+          <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 flex flex-col overflow-hidden h-full">
+            <div className="p-3 border-b border-slate-800/60 bg-slate-900/40 flex justify-between items-center">
+              <span className="text-xs font-medium text-slate-500">Incoming Events</span>
+              <span className="text-xs text-slate-600">{events.length} Events</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2 scroller" ref={scrollRef}>
+              {events.length === 0 && (
+                <div className="p-8 text-center">
+                  <div className="w-12 h-12 bg-slate-800 rounded-full mx-auto mb-3 flex items-center justify-center text-slate-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <p className="text-sm text-slate-500">Waiting for events...</p>
+                </div>
+              )}
+              {events.map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => setSelectedId(e.id)}
+                  className={`w-full p-3 rounded-lg text-left transition-all border group relative overflow-hidden ${selectedEvent?.id === e.id
+                      ? 'bg-slate-800 border-slate-700 shadow-md'
+                      : 'bg-transparent border-transparent hover:bg-slate-800/50'
+                    }`}
+                >
+                  {/* Status Bar */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${e.status >= 400 ? 'bg-red-500' : 'bg-emerald-500'
+                    }`} />
+
+                  <div className="pl-3 flex justify-between items-start mb-1">
+                    <span className="text-xs font-mono font-medium text-white truncate">{e.type}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${e.status >= 400
+                        ? 'bg-red-500/10 text-red-400'
+                        : 'bg-emerald-500/10 text-emerald-400'
+                      }`}>{e.status}</span>
+                  </div>
+                  <div className="pl-3 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-500 font-mono">{e.id}</span>
+                    <span className="text-[10px] text-slate-600">{new Date(e.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Webhook Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Configuration */}
-          <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-            <h2 className="text-lg font-semibold text-white mb-4">Configuration</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">Webhook URL</label>
-                <input
-                  type="text"
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">Webhook Secret</label>
-                <input
-                  type="text"
-                  value={webhookSecret}
-                  onChange={(e) => setWebhookSecret(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Payload */}
-          <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Payload</h2>
-              <button
-                onClick={() => copyToClipboard(currentPayload)}
-                className="text-sm text-zinc-400 hover:text-white transition-colors"
-              >
-                Copy
-              </button>
-            </div>
-            <textarea
-              value={currentPayload}
-              onChange={(e) => setCustomPayload(e.target.value)}
-              rows={12}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-green-400 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-            />
-          </div>
-
-          {/* Signature */}
-          <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Signature</h2>
-              <button
-                onClick={() => copyToClipboard(signature)}
-                className="text-sm text-zinc-400 hover:text-white transition-colors"
-              >
-                Copy
-              </button>
-            </div>
-            <div className="bg-zinc-800 rounded-lg p-4 font-mono text-sm text-blue-400 break-all">
-              X-ArcPay-Signature: {signature}
-            </div>
-            <p className="text-xs text-zinc-500 mt-3">
-              This signature is generated using HMAC-SHA256 with your webhook secret.
-              Verify this header in your webhook handler.
-            </p>
-          </div>
-
-          {/* Send Button */}
-          <button
-            onClick={simulateSend}
-            className="w-full py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
-          >
-            Simulate Webhook Delivery
-          </button>
-
-          {/* Sent Webhooks Log */}
-          {sentWebhooks.length > 0 && (
-            <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-              <h2 className="text-lg font-semibold text-white mb-4">Delivery Log</h2>
-              <div className="space-y-2">
-                {sentWebhooks.map((webhook, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-2 px-3 bg-zinc-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          webhook.status === 'success' ? 'bg-green-500' : 'bg-red-500'
-                        }`}
-                      />
-                      <span className="font-mono text-sm text-zinc-300">{webhook.event}</span>
-                    </div>
-                    <span className="text-xs text-zinc-500">
-                      {new Date(webhook.timestamp).toLocaleTimeString()}
-                    </span>
+        {/* Right Panel: Inspector */}
+        <div className="col-span-8 flex flex-col gap-4">
+          {selectedEvent ? (
+            <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 overflow-hidden h-full flex flex-col">
+              {/* Inspector Header */}
+              <div className="px-6 py-4 border-b border-slate-800/60 bg-slate-900/20 flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-lg font-bold text-white font-mono">{selectedEvent.type}</h2>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${selectedEvent.status >= 400
+                        ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      }`}>{selectedEvent.status} OK</span>
                   </div>
-                ))}
+                  <p className="text-xs font-mono text-slate-500">ID: {selectedEvent.id} • {new Date(selectedEvent.timestamp).toLocaleString()}</p>
+                </div>
+                <button className="text-xs font-medium text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Replay Event
+                </button>
               </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Payload */}
+                <div>
+                  <h3 className="text-xs font-mono text-slate-500 uppercase mb-2">Request Payload</h3>
+                  <div className="bg-[#1e1e1e] rounded-lg border border-slate-800 p-4 shadow-inner">
+                    <pre className="text-xs font-mono text-blue-300 leading-relaxed">
+                      {JSON.stringify(selectedEvent.payload, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Headers */}
+                <div>
+                  <h3 className="text-xs font-mono text-slate-500 uppercase mb-2">Headers</h3>
+                  <div className="bg-slate-950 rounded-lg border border-slate-800 p-4">
+                    <div className="space-y-1">
+                      <div className="flex gap-4">
+                        <span className="text-xs font-mono text-slate-500 w-32 shrink-0">Content-Type</span>
+                        <span className="text-xs font-mono text-slate-300">application/json</span>
+                      </div>
+                      <div className="flex gap-4">
+                        <span className="text-xs font-mono text-slate-500 w-32 shrink-0">X-ArcPay-Event-ID</span>
+                        <span className="text-xs font-mono text-slate-300">{selectedEvent.id}</span>
+                      </div>
+                      <div className="flex gap-4">
+                        <span className="text-xs font-mono text-slate-500 w-32 shrink-0">X-ArcPay-Signature</span>
+                        <span className="text-xs font-mono text-slate-300 truncate">t=167890123,v1=5257a869e7cf...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-900/20 backdrop-blur-sm rounded-xl border border-slate-800/60 border-dashed">
+              <span className="text-slate-500 text-sm">Select an event to inspect details</span>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Handler Example */}
-      <div className="mt-8 bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-        <h2 className="text-lg font-semibold text-white mb-4">Webhook Handler Example</h2>
-        <pre className="bg-zinc-800 rounded-lg p-4 text-sm overflow-x-auto">
-          <code className="text-zinc-300">
-            <span className="text-purple-400">import</span> {'{'}{' '}
-            <span className="text-blue-400">verifyWebhookSignature</span> {'}'}{' '}
-            <span className="text-purple-400">from</span>{' '}
-            <span className="text-green-400">&apos;@arcpay/node&apos;</span>;{'\n\n'}
-            <span className="text-purple-400">export async function</span>{' '}
-            <span className="text-yellow-400">POST</span>(request: Request) {'{\n'}
-            {'  '}<span className="text-purple-400">const</span> body ={' '}
-            <span className="text-purple-400">await</span> request.text();{'\n'}
-            {'  '}<span className="text-purple-400">const</span> signature = request.headers.get(
-            <span className="text-green-400">&apos;X-ArcPay-Signature&apos;</span>);{'\n\n'}
-            {'  '}<span className="text-purple-400">const</span> isValid = verifyWebhookSignature({'{'}
-            {'\n'}
-            {'    '}payload: body,{'\n'}
-            {'    '}signature,{'\n'}
-            {'    '}secret: process.env.ARCPAY_WEBHOOK_SECRET,{'\n'}
-            {'  '}{'}'});{'\n\n'}
-            {'  '}<span className="text-purple-400">if</span> (!isValid) {'{\n'}
-            {'    '}<span className="text-purple-400">return new</span>{' '}
-            Response(<span className="text-green-400">&apos;Invalid signature&apos;</span>, {'{'} status:{' '}
-            <span className="text-orange-400">401</span> {'}'});{'\n'}
-            {'  '}{'}\n\n'}
-            {'  '}<span className="text-purple-400">const</span> event = JSON.parse(body);{'\n'}
-            {'  '}<span className="text-purple-400">switch</span> (event.type) {'{\n'}
-            {'    '}<span className="text-purple-400">case</span>{' '}
-            <span className="text-green-400">&apos;payment.completed&apos;</span>:{'\n'}
-            {'      '}<span className="text-zinc-500">// Handle payment completion</span>{'\n'}
-            {'      '}<span className="text-purple-400">break</span>;{'\n'}
-            {'    '}<span className="text-purple-400">case</span>{' '}
-            <span className="text-green-400">&apos;subscription.renewed&apos;</span>:{'\n'}
-            {'      '}<span className="text-zinc-500">// Handle subscription renewal</span>{'\n'}
-            {'      '}<span className="text-purple-400">break</span>;{'\n'}
-            {'  '}{'}\n\n'}
-            {'  '}<span className="text-purple-400">return new</span>{' '}
-            Response(<span className="text-green-400">&apos;OK&apos;</span>, {'{'} status:{' '}
-            <span className="text-orange-400">200</span> {'}'});{'\n'}
-            {'}'}
-          </code>
-        </pre>
       </div>
     </div>
   );

@@ -2,32 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useCreditAccount, useUsage } from '@/mocks/MockB2BProvider';
-
-const meterOptions = [
-  { value: 'api_call', label: 'API Call', rate: '$0.01' },
-  { value: 'data_export', label: 'Data Export', rate: '$0.50' },
-  { value: 'premium_feature', label: 'Premium Feature', rate: '$5.00' },
-  { value: 'storage_gb', label: 'Storage (GB)', rate: '$0.10' },
-];
+import { meterOptions, type MeterOption } from './_lib';
+import { CreditCard, DepositForm, UsageSimulator } from './_components';
 
 export default function CreditsPage() {
   const { creditAccount, isLoading, loadAccount, deposit } = useCreditAccount();
-  const { usageRecords, usageSummary, isRecording, recordUsage } = useUsage();
+  const { usageRecords, isRecording, recordUsage } = useUsage();
 
-  const [selectedMeter, setSelectedMeter] = useState('api_call');
-  const [usageCount, setUsageCount] = useState('10');
+  const [selectedMeter, setSelectedMeter] = useState<MeterOption>(meterOptions[0]);
+  const [usageCount, setUsageCount] = useState<number>(100);
   const [depositAmount, setDepositAmount] = useState('1000');
   const [isDepositing, setIsDepositing] = useState(false);
+  const [autoRefill, setAutoRefill] = useState(false);
 
   useEffect(() => {
     loadAccount();
   }, [loadAccount]);
 
   const handleRecordUsage = async () => {
-    const count = parseInt(usageCount, 10);
-    if (count > 0) {
-      await recordUsage(selectedMeter, count);
-      setUsageCount('10');
+    if (usageCount > 0) {
+      await recordUsage(selectedMeter.value, usageCount);
     }
   };
 
@@ -43,206 +37,121 @@ export default function CreditsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-zinc-400">Loading account...</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="relative">
+          <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-4 h-4 bg-cyan-500 rounded-full animate-pulse" />
+          </div>
         </div>
       </div>
     );
   }
 
+  const yieldProgress = creditAccount ? (parseFloat(creditAccount.yieldEarned.amount) / 1000) * 100 : 0;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Credits & Usage</h1>
-        <p className="text-zinc-400">
-          Manage prepaid credits and track usage-based billing
-        </p>
-      </div>
-
-      {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <p className="text-sm text-zinc-400 mb-1">Available Balance</p>
-          <p className="text-3xl font-bold text-white">
-            ${creditAccount?.availableBalance.amount || '0.00'}
-          </p>
-          <p className="text-sm text-zinc-500 mt-1">USDC • Instant access</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white mb-1">Credits & Usage</h1>
+          <p className="text-sm text-slate-400">Manage prepaid balances and monitor consumption</p>
         </div>
-
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <p className="text-sm text-zinc-400 mb-1">In Yield Vault</p>
-          <p className="text-3xl font-bold text-green-400">
-            ${creditAccount?.yieldBalance.amount || '0.00'}
-          </p>
-          <p className="text-sm text-zinc-500 mt-1">USDY • 5.2% APY</p>
-        </div>
-
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <p className="text-sm text-zinc-400 mb-1">Yield Earned</p>
-          <p className="text-3xl font-bold text-purple-400">
-            ${creditAccount?.yieldEarned.amount || '0.00'}
-          </p>
-          <p className="text-sm text-zinc-500 mt-1">This month</p>
-        </div>
-      </div>
-
-      {/* Deposit Section */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Deposit Funds</h2>
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block text-sm text-zinc-400 mb-2">Amount (USDC)</label>
-            <input
-              type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="1000"
-            />
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <div className="text-xs font-mono text-slate-500">AUTO-REFILL</div>
+            <div className="text-sm font-medium text-white">{autoRefill ? 'ON (Threshold: $100)' : 'OFF'}</div>
           </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleDeposit}
-              disabled={isDepositing}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-            >
-              {isDepositing ? 'Depositing...' : 'Deposit'}
-            </button>
-          </div>
+          <button
+            onClick={() => setAutoRefill(!autoRefill)}
+            className={`w-12 h-6 rounded-full p-1 transition-colors ${autoRefill ? 'bg-cyan-600' : 'bg-slate-700'}`}
+          >
+            <div className={`w-4 h-4 rounded-full bg-white transition-transform ${autoRefill ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Record Usage */}
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Record Usage</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-5 space-y-6">
+          <CreditCard
+            balance={creditAccount?.availableBalance.amount || '0.00'}
+            accountId={creditAccount?.id || '----'}
+          />
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Meter Type</label>
-              <select
-                value={selectedMeter}
-                onChange={(e) => setSelectedMeter(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {meterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} ({option.rate}/unit)
-                  </option>
-                ))}
-              </select>
+          <DepositForm
+            depositAmount={depositAmount}
+            isDepositing={isDepositing}
+            onAmountChange={setDepositAmount}
+            onDeposit={handleDeposit}
+          />
+
+          {/* Yield Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/60 p-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/5 rounded-full blur-xl" />
+              <div className="text-xs font-mono text-slate-500 uppercase mb-1">Yield Balance</div>
+              <div className="text-xl font-bold text-white mb-1">${creditAccount?.yieldBalance.amount}</div>
+              <div className="text-[10px] text-green-400 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                5.2% APY
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Count</label>
-              <input
-                type="number"
-                value={usageCount}
-                onChange={(e) => setUsageCount(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="10"
-              />
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/60 p-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full blur-xl" />
+              <div className="text-xs font-mono text-slate-500 uppercase mb-1">Earned YTD</div>
+              <div className="text-xl font-bold text-white mb-1">${creditAccount?.yieldEarned.amount}</div>
+              <div className="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+                <div className="h-full bg-purple-500" style={{ width: `${yieldProgress}%` }} />
+              </div>
             </div>
-
-            <button
-              onClick={handleRecordUsage}
-              disabled={isRecording}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-            >
-              {isRecording ? 'Recording...' : 'Record Usage'}
-            </button>
           </div>
+        </div>
 
-          {/* Recent Usage */}
-          {usageRecords.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-zinc-400 mb-3">Recent Usage</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {usageRecords.slice(0, 5).map((record) => (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between py-2 px-3 bg-zinc-800 rounded-lg text-sm"
-                  >
-                    <div>
-                      <span className="text-white">{record.meter}</span>
-                      <span className="text-zinc-500 ml-2">×{record.count}</span>
+        {/* Right Column */}
+        <div className="lg:col-span-7 space-y-6">
+          <UsageSimulator
+            selectedMeter={selectedMeter}
+            usageCount={usageCount}
+            isRecording={isRecording}
+            recordsCount={usageRecords.length}
+            onMeterChange={setSelectedMeter}
+            onUsageCountChange={setUsageCount}
+            onRecordUsage={handleRecordUsage}
+          />
+
+          {/* Recent Activity */}
+          <div className="bg-slate-900/40 rounded-xl border border-slate-800/60 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-800/60 flex justify-between items-center">
+              <span className="text-[10px] font-mono text-slate-500 uppercase">Live Usage Feed</span>
+              <button className="text-[10px] text-cyan-400 hover:text-cyan-300">View All</button>
+            </div>
+            <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
+              {usageRecords.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs">No activity recorded yet</div>
+              ) : (
+                usageRecords.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between p-3 hover:bg-slate-800/30 rounded-lg transition-colors group animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-slate-700 group-hover:text-white transition-colors">
+                        <div className="font-mono text-[10px]">{record.meter.slice(0, 2).toUpperCase()}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium text-white">{record.meter}</div>
+                        <div className="text-[10px] text-slate-500">{new Date(record.createdAt).toLocaleTimeString()}</div>
+                      </div>
                     </div>
-                    <span className="text-red-400">-${record.cost.amount}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Usage Summary */}
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Usage Summary</h2>
-          <p className="text-sm text-zinc-500 mb-4">
-            Period: {usageSummary?.period || 'Current month'}
-          </p>
-
-          {usageSummary?.items && usageSummary.items.length > 0 ? (
-            <>
-              <div className="space-y-3">
-                {usageSummary.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between py-3 border-b border-zinc-800 last:border-0"
-                  >
-                    <div>
-                      <p className="text-white font-medium">{item.meter}</p>
-                      <p className="text-sm text-zinc-500">
-                        {item.count.toLocaleString()} units
-                      </p>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-white font-mono">-${record.cost.amount}</div>
+                      <div className="text-[10px] text-slate-500">{record.count} units</div>
                     </div>
-                    <p className="text-white font-medium">${item.cost.amount}</p>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-zinc-700 flex items-center justify-between">
-                <p className="text-lg font-medium text-white">Total</p>
-                <p className="text-2xl font-bold text-white">${usageSummary.total.amount}</p>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-8 text-zinc-500">
-              No usage recorded yet
+                ))
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
-
-      {/* Code Example */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 bg-zinc-800/50">
-          <span className="text-sm text-zinc-400">Usage Metering Example</span>
-        </div>
-        <pre className="p-4 text-sm overflow-x-auto">
-          <code className="text-zinc-300">{`// Create a usage meter for your API
-const meter = arcpay.createUsageMeter({
-  accountId: '${creditAccount?.id || 'acc_xxx'}',
-  rateCard: {
-    api_call: 0.01,
-    data_export: 0.50,
-    premium_feature: 5.00,
-  },
-});
-
-// Record usage (e.g., in Express middleware)
-app.use('/api', async (req, res, next) => {
-  await meter.record('api_call');
-  next();
-});
-
-// Get current period summary
-const summary = await meter.getSummary();
-// { period: '2024-01', total: { amount: '154.20', currency: 'USDC' } }`}</code>
-        </pre>
       </div>
     </div>
   );

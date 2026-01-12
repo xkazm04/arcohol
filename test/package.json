@@ -9,11 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@arcpay/react": "file:../ArcPay",
     "@arcpay/b2b": "file:../arcpay-b2b",
+    "@arcpay/react": "file:../arcpay-react",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.1",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "next": "16.1.1",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-syntax-highlighter": "^16.1.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

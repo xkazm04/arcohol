@@ -6,7 +6,11 @@
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
       "Bash(cat:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "WebFetch(domain:portal.thirdweb.com)",
+      "WebFetch(domain:developers.circle.com)",
+      "WebSearch",
+      "Bash(wc:*)"
     ]
   }
 }

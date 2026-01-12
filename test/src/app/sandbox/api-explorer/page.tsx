@@ -1,323 +1,124 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  useWallet,
-  useBalance,
-  useTransfer,
-  useTransactionHistory,
-} from '@/mocks/MockArcPayProvider';
-
-type HookName = 'useWallet' | 'useBalance' | 'useTransfer' | 'useTransactionHistory';
-
-interface HookInfo {
-  name: HookName;
-  description: string;
-  returns: string[];
-}
-
-const hooks: HookInfo[] = [
-  {
-    name: 'useWallet',
-    description: 'Manage wallet connection and state',
-    returns: ['wallet', 'address', 'isConnected', 'isConnecting', 'connect()', 'disconnect()'],
-  },
-  {
-    name: 'useBalance',
-    description: 'Fetch and monitor USDC balance',
-    returns: ['balance', 'balanceRaw', 'isLoading', 'refetch()'],
-  },
-  {
-    name: 'useTransfer',
-    description: 'Execute USDC transfers',
-    returns: ['isTransferring', 'lastTransaction', 'transfer()', 'estimateFee()'],
-  },
-  {
-    name: 'useTransactionHistory',
-    description: 'Fetch transaction history',
-    returns: ['transactions', 'isLoading', 'hasMore', 'loadMore()', 'refresh()'],
-  },
-];
-
-function HookExplorer({ hookName }: { hookName: HookName }) {
-  const walletHook = useWallet();
-  const balanceHook = useBalance();
-  const transferHook = useTransfer();
-  const historyHook = useTransactionHistory();
-
-  const [transferTo, setTransferTo] = useState('0x1234567890abcdef1234567890abcdef12345678');
-  const [transferAmount, setTransferAmount] = useState('10.00');
-  const [actionResult, setActionResult] = useState<string | null>(null);
-
-  const executeAction = async (action: string) => {
-    setActionResult(null);
-    try {
-      let result: unknown;
-      switch (action) {
-        case 'connect':
-          await walletHook.connect();
-          result = { success: true, message: 'Wallet connected' };
-          break;
-        case 'disconnect':
-          walletHook.disconnect();
-          result = { success: true, message: 'Wallet disconnected' };
-          break;
-        case 'transfer':
-          result = await transferHook.transfer({ to: transferTo, amount: transferAmount });
-          break;
-        case 'refetch':
-          await balanceHook.refetch();
-          result = { success: true, message: 'Balance refetched' };
-          break;
-        default:
-          result = { error: 'Unknown action' };
-      }
-      setActionResult(JSON.stringify(result, null, 2));
-    } catch (error) {
-      setActionResult(JSON.stringify({ error: (error as Error).message }, null, 2));
-    }
-  };
-
-  const renderHookState = () => {
-    let state: Record<string, unknown>;
-    switch (hookName) {
-      case 'useWallet':
-        state = {
-          wallet: walletHook.wallet,
-          address: walletHook.address,
-          isConnected: walletHook.isConnected,
-          isConnecting: walletHook.isConnecting,
-        };
-        break;
-      case 'useBalance':
-        state = {
-          balance: balanceHook.balance,
-          balanceRaw: balanceHook.balanceRaw.toString(),
-          isLoading: balanceHook.isLoading,
-        };
-        break;
-      case 'useTransfer':
-        state = {
-          isTransferring: transferHook.isTransferring,
-          lastTransaction: transferHook.lastTransaction,
-        };
-        break;
-      case 'useTransactionHistory':
-        state = {
-          transactions: historyHook.transactions,
-          isLoading: historyHook.isLoading,
-          hasMore: historyHook.hasMore,
-        };
-        break;
-      default:
-        state = {};
-    }
-    return JSON.stringify(state, null, 2);
-  };
-
-  const renderActions = () => {
-    switch (hookName) {
-      case 'useWallet':
-        return (
-          <div className="flex gap-3">
-            <button
-              onClick={() => executeAction('connect')}
-              disabled={walletHook.isConnected || walletHook.isConnecting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {walletHook.isConnecting ? 'Connecting...' : 'connect()'}
-            </button>
-            <button
-              onClick={() => executeAction('disconnect')}
-              disabled={!walletHook.isConnected}
-              className="px-4 py-2 bg-zinc-700 text-white rounded-lg font-medium hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              disconnect()
-            </button>
-          </div>
-        );
-      case 'useBalance':
-        return (
-          <button
-            onClick={() => executeAction('refetch')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            refetch()
-          </button>
-        );
-      case 'useTransfer':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Recipient Address</label>
-                <input
-                  type="text"
-                  value={transferTo}
-                  onChange={(e) => setTransferTo(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Amount (USDC)</label>
-                <input
-                  type="text"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <button
-              onClick={() => executeAction('transfer')}
-              disabled={!walletHook.isConnected || transferHook.isTransferring}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {transferHook.isTransferring ? 'Transferring...' : 'transfer()'}
-            </button>
-          </div>
-        );
-      case 'useTransactionHistory':
-        return (
-          <button
-            onClick={() => historyHook.refresh()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            refresh()
-          </button>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Current State */}
-      <div>
-        <h3 className="text-sm font-medium text-zinc-400 mb-2">Current State</h3>
-        <pre className="bg-zinc-800 rounded-lg p-4 text-sm text-green-400 font-mono overflow-x-auto">
-          {renderHookState()}
-        </pre>
-      </div>
-
-      {/* Actions */}
-      <div>
-        <h3 className="text-sm font-medium text-zinc-400 mb-2">Actions</h3>
-        {renderActions()}
-      </div>
-
-      {/* Action Result */}
-      {actionResult && (
-        <div>
-          <h3 className="text-sm font-medium text-zinc-400 mb-2">Last Action Result</h3>
-          <pre className="bg-zinc-800 rounded-lg p-4 text-sm text-blue-400 font-mono overflow-x-auto">
-            {actionResult}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
+import { hooks, type HookName, type LogEntry } from './_lib';
+import { HookExplorer } from './_components';
 
 export default function APIExplorerPage() {
-  const [selectedHook, setSelectedHook] = useState<HookName>('useWallet');
+  const [selected, setSelected] = useState<HookName>('useWallet');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  const addLog = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setLogs(prev => [{ id: Date.now(), msg, type, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
+  };
+
+  const selectedHook = hooks.find(h => h.name === selected);
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">API Explorer</h1>
-        <p className="text-zinc-400">
-          Interact with SDK hooks in real-time. Select a hook to see its state and available actions.
-        </p>
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-2">API Explorer</h1>
+          <p className="text-sm text-slate-400 max-w-xl">Interactive playground to test SDK hooks in real-time. Execute methods, inspect state changes, and understand return values before integrating into your application.</p>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Hook Selector */}
-        <div className="lg:col-span-1">
-          <h2 className="text-lg font-semibold text-white mb-4">Available Hooks</h2>
-          <div className="space-y-2">
-            {hooks.map((hook) => (
-              <button
-                key={hook.name}
-                onClick={() => setSelectedHook(hook.name)}
-                className={`w-full text-left p-4 rounded-xl border transition-all ${
-                  selectedHook === hook.name
-                    ? 'bg-blue-500/10 border-blue-500/30 text-white'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
-                }`}
-              >
-                <div className="font-mono text-sm text-blue-400 mb-1">{hook.name}</div>
-                <div className="text-sm">{hook.description}</div>
-              </button>
-            ))}
+      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+        {/* Sidebar */}
+        <div className="col-span-3 flex flex-col gap-4 min-h-0">
+          <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 flex flex-col overflow-hidden h-full">
+            <div className="p-3 border-b border-slate-800/60 bg-slate-900/40">
+              <span className="text-xs font-medium text-slate-500">Available Hooks</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {hooks.map((h) => (
+                <button
+                  key={h.name}
+                  onClick={() => setSelected(h.name)}
+                  className={`w-full p-3 rounded-lg text-left transition-all group relative ${selected === h.name
+                      ? 'bg-cyan-500/10 text-cyan-400'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    }`}
+                >
+                  {selected === h.name && (
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-cyan-500 rounded-l-lg" />
+                  )}
+                  <div className="text-xs font-mono font-medium mb-1">{h.name}</div>
+                  <div className="text-[10px] opacity-60 truncate">{h.description}</div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Hook Details */}
-        <div className="lg:col-span-2">
-          <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white font-mono">{selectedHook}()</h2>
-              <span className="px-3 py-1 text-xs font-medium bg-green-500/10 text-green-400 rounded-full">
-                Active
-              </span>
+        {/* Main Content */}
+        <div className="col-span-9 flex flex-col gap-4 min-h-0 overflow-y-auto pr-2">
+          {/* Active Hook Workspace */}
+          <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-800/60 bg-slate-900/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-mono text-cyan-400 font-bold">{selected}()</span>
+                  <span className="text-slate-600 text-sm">// {selectedHook?.description}</span>
+                </div>
+                <div className="flex gap-2">
+                  {selectedHook?.returns.map(r => (
+                    <span key={r} className="px-2 py-1 bg-slate-800 rounded text-xs font-mono text-slate-400 border border-slate-700">{r}</span>
+                  ))}
+                </div>
+              </div>
+              <p className="text-sm text-slate-400 mb-2">{selectedHook?.details}</p>
+              <div className="text-xs">
+                <span className="text-slate-600">Best for: </span>
+                <span className="text-cyan-400/70">{selectedHook?.useCase}</span>
+              </div>
             </div>
 
-            {/* Returns */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-zinc-400 mb-2">Returns</h3>
-              <div className="flex flex-wrap gap-2">
-                {hooks.find((h) => h.name === selectedHook)?.returns.map((ret) => (
-                  <span
-                    key={ret}
-                    className="px-2 py-1 text-xs font-mono bg-zinc-800 text-zinc-300 rounded"
-                  >
-                    {ret}
-                  </span>
+            <div className="p-6">
+              <HookExplorer hookName={selected} onLog={addLog} />
+            </div>
+          </div>
+
+          {/* Bottom Area: Logs & Code Scan */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Simple Console Log */}
+            <div className="bg-black/40 rounded-xl border border-slate-800/60 p-4 h-48 overflow-hidden flex flex-col">
+              <div className="text-xs font-medium text-slate-500 mb-2 flex justify-between">
+                <span>Console Output</span>
+                <button onClick={() => setLogs([])} className="hover:text-white transition-colors">Clear</button>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-[11px]">
+                {logs.length === 0 && <span className="text-slate-600 italic">No events yet...</span>}
+                {logs.map(log => (
+                  <div key={log.id} className="flex gap-2">
+                    <span className="text-slate-600">[{log.time}]</span>
+                    <span className={`${log.type === 'error' ? 'text-red-400' :
+                        log.type === 'success' ? 'text-green-400' :
+                          'text-slate-300'
+                      }`}>{log.msg}</span>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Interactive Explorer */}
-            <HookExplorer hookName={selectedHook} />
+            {/* Usage Snippet */}
+            <div className="bg-slate-900/40 rounded-xl border border-slate-800/60 p-4 h-48 flex flex-col">
+              <div className="text-xs font-medium text-slate-500 mb-2">Example Usage</div>
+              <div className="flex-1 bg-slate-950 rounded-lg p-3 overflow-auto border border-slate-800/50">
+                <pre className="text-[11px] font-mono text-slate-400">
+                  {`import { ${selected} } from '@arcpay/react'
+
+function Component() {
+  const {
+    ${selectedHook?.returns.slice(0, 2).join(',\n    ')}
+  } = ${selected}()
+}`}
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Code Example */}
-      <div className="mt-8 bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
-        <h2 className="text-lg font-semibold text-white mb-4">Usage Example</h2>
-        <pre className="bg-zinc-800 rounded-lg p-4 text-sm overflow-x-auto">
-          <code className="text-zinc-300">
-            <span className="text-purple-400">import</span> {'{'}{' '}
-            <span className="text-blue-400">{selectedHook}</span> {'}'}{' '}
-            <span className="text-purple-400">from</span>{' '}
-            <span className="text-green-400">&apos;@arcpay/react&apos;</span>;{'\n\n'}
-            <span className="text-purple-400">function</span>{' '}
-            <span className="text-yellow-400">MyComponent</span>() {'{\n'}
-            {'  '}
-            <span className="text-purple-400">const</span> {'{'}{' '}
-            {hooks
-              .find((h) => h.name === selectedHook)
-              ?.returns.slice(0, 3)
-              .join(', ')}{' '}
-            {'}'} = <span className="text-blue-400">{selectedHook}</span>();{'\n\n'}
-            {'  '}
-            <span className="text-purple-400">return</span> ({'\n'}
-            {'    '}&lt;<span className="text-blue-400">div</span>&gt;{'\n'}
-            {'      '}&lt;<span className="text-blue-400">pre</span>&gt;{'{'}JSON.stringify({'{'}{' '}
-            {hooks
-              .find((h) => h.name === selectedHook)
-              ?.returns.filter((r) => !r.includes('('))
-              .slice(0, 2)
-              .join(', ')}{' '}
-            {'}'}, null, 2){'}'}&lt;/<span className="text-blue-400">pre</span>&gt;{'\n'}
-            {'    '}&lt;/<span className="text-blue-400">div</span>&gt;{'\n'}
-            {'  '});{'\n'}
-            {'}'}
-          </code>
-        </pre>
       </div>
     </div>
   );
