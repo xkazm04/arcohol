@@ -24,6 +24,8 @@
 -- 007_agents.sql     - AI agent wallets (budgets, transactions, anomaly detection)
 -- 008_functions.sql  - Stored procedures and utility functions
 -- 009_policies.sql   - Row Level Security policies
+-- 010_transactions.sql - API transactions tracking
+-- 011_transactions_policies.sql - Transaction RLS policies
 -- =====================================================
 
 -- Enable required extensions
@@ -64,5 +66,11 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 \echo 'Running 009_policies.sql - RLS Policies'
 \i 009_policies.sql
+
+\echo 'Running 010_transactions.sql - API Transactions'
+\i 010_transactions.sql
+
+\echo 'Running 011_transactions_policies.sql - Transaction Policies'
+\i 011_transactions_policies.sql
 
 \echo 'Schema setup complete!'

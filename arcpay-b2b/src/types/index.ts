@@ -156,3 +156,27 @@ export type {
   WebhookHandler,
   WebhookHandlers,
 } from './webhook';
+
+// USDY Yield types
+export type {
+  UsdyStats,
+  UsdyTransaction,
+  UsdyTransactionType,
+  UsdyTransactionStatus,
+  DepositParams as UsdyDepositParams,
+  WithdrawParams as UsdyWithdrawParams,
+  ListUsdyTransactionsParams,
+  AutomationRule,
+  AutomationRuleType,
+  AutomationRuleConfig,
+  CreateAutomationRuleParams,
+  UpdateAutomationRuleParams,
+  AutomationLog,
+  AutomationTriggerType,
+  TriggerRuleParams,
+  YieldAccrual,
+  ApyHistoryEntry,
+  ListYieldHistoryParams,
+  UsdyEventType,
+  UsdyEvent,
+} from './usdy';

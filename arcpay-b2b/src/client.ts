@@ -11,10 +11,12 @@ import {
   GatewayResource,
   TreasuryResource,
   WebhooksResource,
+  UsdyResource,
   UsageMeter,
   DisputeProtection,
   MerchantGateway,
   Treasury,
+  Usdy,
 } from './resources';
 
 /**
@@ -71,6 +73,11 @@ export class ArcPayB2B {
   readonly webhooks: WebhooksResource;
 
   /**
+   * USDY resource for yield management operations
+   */
+  readonly usdy: UsdyResource;
+
+  /**
    * SDK configuration
    */
   private readonly config: ArcPayB2BConfig;
@@ -87,6 +94,7 @@ export class ArcPayB2B {
     this.gateway = new GatewayResource(config);
     this.treasury = new TreasuryResource(config);
     this.webhooks = new WebhooksResource(config);
+    this.usdy = new UsdyResource(config);
   }
 
   // ==========================================================================
@@ -188,6 +196,36 @@ export class ArcPayB2B {
   createTreasury(options: { treasuryId: string }): Treasury {
     return new Treasury({
       treasury: this.treasury,
+      treasuryId: options.treasuryId,
+    });
+  }
+
+  /**
+   * Create a USDY yield management helper
+   *
+   * @example
+   * ```typescript
+   * const usdy = arcpay.createUsdy({
+   *   treasuryId: 'tres_xxx',
+   * });
+   *
+   * // Get stats
+   * const stats = await usdy.getStats();
+   *
+   * // Quick deposit
+   * await usdy.deposit(10000);
+   *
+   * // Create and trigger a rule
+   * const rule = await usdy.createPercentageRule({
+   *   name: 'Revenue Split',
+   *   percentage: 30,
+   * });
+   * await usdy.trigger(rule.id);
+   * ```
+   */
+  createUsdy(options: { treasuryId: string }): Usdy {
+    return new Usdy({
+      usdy: this.usdy,
       treasuryId: options.treasuryId,
     });
   }

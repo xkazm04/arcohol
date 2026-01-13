@@ -49,6 +49,9 @@ export interface ApiKey {
   name: string;
   key_prefix: string;
   permissions: string[];
+  wallet_address?: string;
+  chain?: string;
+  environment?: 'production' | 'sandbox' | 'development';
   last_used_at?: string;
   request_count: number;
   expires_at?: string;
@@ -202,4 +205,116 @@ export interface WebhookEndpoint {
   };
   created_at: string;
   updated_at: string;
+}
+
+export interface Transaction {
+  id: string;
+  organization_id: string;
+  api_key_id?: string;
+  reference: string;
+  type: 'payment' | 'transfer' | 'refund' | 'payout';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  amount: number;
+  fee_amount: number;
+  net_amount: number;
+  currency: string;
+  token_symbol: string;
+  token_address?: string;
+  chain: string;
+  chain_id?: number;
+  tx_hash?: string;
+  block_number?: number;
+  gas_used?: number;
+  from_address: string;
+  to_address: string;
+  invoice_id?: string;
+  customer_id?: string;
+  description?: string;
+  memo?: string;
+  metadata?: Record<string, unknown>;
+  error_code?: string;
+  error_message?: string;
+  confirmations: number;
+  required_confirmations: number;
+  initiated_at: string;
+  confirmed_at?: string;
+  completed_at?: string;
+  failed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionEvent {
+  id: string;
+  transaction_id: string;
+  event_type: string;
+  status: Transaction['status'];
+  tx_hash?: string;
+  block_number?: number;
+  confirmations?: number;
+  metadata?: Record<string, unknown>;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface ApiKeyStats {
+  id: string;
+  api_key_id: string;
+  date: string;
+  request_count: number;
+  success_count: number;
+  error_count: number;
+  transaction_count: number;
+  transaction_volume: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiKeyWithStats extends ApiKey {
+  stats?: {
+    requests_today: number;
+    requests_month: number;
+    transactions_today: number;
+    volume_today: number;
+  };
+}
+
+// Blockchain Transaction Types
+export interface BlockchainTransaction {
+  hash: string;
+  blockNumber: number;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+  valueFormatted: number;
+  gasUsed?: string;
+  gasPrice?: string;
+  gasFee?: number;
+  status: 'success' | 'failed' | 'pending';
+  chain: string;
+  chainId: number;
+  tokenSymbol?: string;
+  tokenAddress?: string;
+  tokenDecimals?: number;
+  type: 'native' | 'erc20' | 'internal';
+  methodId?: string;
+  functionName?: string;
+  // For linking to API key
+  apiKeyId?: string;
+  apiKeyName?: string;
+}
+
+export interface ChainConfig {
+  id: string;
+  name: string;
+  chainId: number;
+  explorerUrl: string;
+  explorerApiUrl: string;
+  rpcUrl: string;
+  nativeCurrency: {
+    symbol: string;
+    decimals: number;
+  };
+  color: string;
 }

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { chainAllocations } from './_lib';
 import { TotalBalance, ChainCard, RecentBridges, BridgeModal } from './_components';
+import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
 
 export default function CrossChainPage() {
   const [showBridgeModal, setShowBridgeModal] = useState(false);
@@ -19,67 +21,115 @@ export default function CrossChainPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4 max-w-7xl mx-auto"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-bold text-white">Cross-Chain Treasury</h1>
-            <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-[10px] font-bold rounded border border-cyan-500/20">CCTP V2</span>
+          <div className="flex items-center gap-2 mb-1">
+            <h1
+              className="text-lg font-semibold text-white"
+              style={{ textShadow: '0 0 20px rgba(6, 182, 212, 0.3)' }}
+            >
+              Cross-Chain Treasury
+            </h1>
+            <motion.span
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-[9px] font-bold rounded border border-cyan-500/30"
+              style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.2)' }}
+            >
+              CCTP V2
+            </motion.span>
           </div>
-          <p className="text-sm text-slate-400">Multi-chain fund allocation with Circle bridge integration</p>
+          <p className="text-xs text-slate-400 max-w-xl">Multi-chain fund allocation with Circle bridge integration</p>
         </div>
-        <button
+        <GlowButton
           onClick={() => setShowBridgeModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+          icon={
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          }
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
           Bridge Funds
-        </button>
-      </div>
+        </GlowButton>
+      </motion.div>
 
-      <TotalBalance totalBalance={totalBalance} />
+      <motion.div variants={listItem}>
+        <TotalBalance totalBalance={totalBalance} />
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chain Balances */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="text-xs font-mono text-slate-500 uppercase">Chain Allocations</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {chainAllocations.map((chain) => (
-              <ChainCard key={chain.chain} chain={chain} />
+        <motion.div variants={listItem} className="lg:col-span-2 space-y-3">
+          <div className="text-[10px] font-mono text-slate-500 uppercase">Chain Allocations</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {chainAllocations.map((chain, index) => (
+              <motion.div
+                key={chain.chain}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 + index * 0.05 }}
+              >
+                <ChainCard chain={chain} />
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        <RecentBridges />
+        <motion.div variants={listItem}>
+          <RecentBridges />
+        </motion.div>
       </div>
 
       {/* Bridge Info */}
-      <div className="bg-slate-950 rounded-xl border border-slate-800/60 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-800/60 bg-slate-900/40">
-          <span className="text-xs font-mono text-slate-500">BRIDGE INFORMATION</span>
+      <motion.div
+        variants={listItem}
+        className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 overflow-hidden"
+      >
+        {/* Corner markers */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyan-500/30 rounded-tl" />
+        <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyan-500/30 rounded-tr" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyan-500/30 rounded-bl" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyan-500/30 rounded-br" />
+
+        <div className="px-4 py-2.5 border-b border-slate-800/40 bg-slate-900/30">
+          <span className="text-[10px] font-mono text-slate-500 uppercase">Bridge Information</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800/60">
-          <div className="p-5">
-            <div className="text-xs text-slate-500 mb-1">Protocol</div>
-            <div className="text-lg font-bold text-white">Circle CCTP V2</div>
-          </div>
-          <div className="p-5">
-            <div className="text-xs text-slate-500 mb-1">Bridge Time</div>
-            <div className="text-lg font-bold text-white">&lt;15 min</div>
-          </div>
-          <div className="p-5">
-            <div className="text-xs text-slate-500 mb-1">Fee Structure</div>
-            <div className="text-lg font-bold text-white">Gas Only</div>
-          </div>
-          <div className="p-5">
-            <div className="text-xs text-slate-500 mb-1">Security</div>
-            <div className="text-lg font-bold text-green-400">Native Burn/Mint</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800/40">
+          {[
+            { label: 'Protocol', value: 'Circle CCTP V2', color: 'white' },
+            { label: 'Bridge Time', value: '<15 min', color: 'white' },
+            { label: 'Fee Structure', value: 'Gas Only', color: 'white' },
+            { label: 'Security', value: 'Native Burn/Mint', color: 'emerald' },
+          ].map((item, index) => (
+            <motion.div
+              key={item.label}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 + index * 0.1 }}
+              className="p-4"
+            >
+              <div className="text-[10px] text-slate-500 mb-1">{item.label}</div>
+              <div
+                className={`text-sm font-bold ${item.color === 'emerald' ? 'text-emerald-400' : 'text-white'}`}
+                style={item.color === 'emerald' ? { textShadow: '0 0 10px rgba(16, 185, 129, 0.5)' } : undefined}
+              >
+                {item.value}
+              </div>
+            </motion.div>
+          ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Modal */}
       {showBridgeModal && (
@@ -94,6 +144,6 @@ export default function CrossChainPage() {
           onSwap={handleSwap}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

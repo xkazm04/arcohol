@@ -10,7 +10,10 @@
       "WebFetch(domain:portal.thirdweb.com)",
       "WebFetch(domain:developers.circle.com)",
       "WebSearch",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(tree:*)",
+      "Bash(ls:*)",
+      "Bash(done)"
     ]
   }
 }

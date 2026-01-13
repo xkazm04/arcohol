@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { mockEndpoints } from './_lib';
 import { WebhookStats, EndpointCard, DeliveryLogs, CreateModal, TestModal } from './_components';
+import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
 
 export default function WebhooksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -25,48 +27,77 @@ export default function WebhooksPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4 max-w-7xl mx-auto"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-xl font-bold text-white mb-1">Webhooks</h1>
-          <p className="text-sm text-slate-400">Receive real-time event notifications for your integrations</p>
+          <h1
+            className="text-lg font-semibold text-white mb-1"
+            style={{ textShadow: '0 0 20px rgba(245, 158, 11, 0.3)' }}
+          >
+            Webhooks
+          </h1>
+          <p className="text-xs text-slate-400 max-w-xl">Receive real-time event notifications for your integrations</p>
         </div>
-        <div className="flex gap-3">
-          <button
+        <div className="flex gap-2">
+          <GlowButton
+            variant="secondary"
+            size="sm"
             onClick={() => setShowTestModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+            icon={
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            }
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
             Test Webhook
-          </button>
-          <button
+          </GlowButton>
+          <GlowButton
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+            icon={
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            }
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
             Add Endpoint
-          </button>
+          </GlowButton>
         </div>
-      </div>
+      </motion.div>
 
-      <WebhookStats />
+      <motion.div variants={listItem}>
+        <WebhookStats />
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Endpoints */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="text-xs font-mono text-slate-500 uppercase">Webhook Endpoints</div>
-          {mockEndpoints.map((endpoint) => (
-            <EndpointCard key={endpoint.id} endpoint={endpoint} />
+        <motion.div variants={listItem} className="lg:col-span-2 space-y-3">
+          <div className="text-[10px] font-mono text-slate-500 uppercase">Webhook Endpoints</div>
+          {mockEndpoints.map((endpoint, index) => (
+            <motion.div
+              key={endpoint.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + index * 0.05 }}
+            >
+              <EndpointCard endpoint={endpoint} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Delivery Logs */}
-        <DeliveryLogs />
+        <motion.div variants={listItem}>
+          <DeliveryLogs />
+        </motion.div>
       </div>
 
       {/* Modals */}
@@ -84,6 +115,6 @@ export default function WebhooksPage() {
           onTest={runTest}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

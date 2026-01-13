@@ -2,7 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useWallet, ARC_TESTNET } from '../../hooks/useWallet';
+import { GlowButton, StatusBadge, staggerContainer, listItem } from '@/components/dashboard';
 
 interface Feature {
   href: string;
@@ -86,129 +88,244 @@ const features: Feature[] = [
   },
 ];
 
+const colorConfig: Record<string, { primary: string; glow: string; border: string; bg: string; text: string }> = {
+  cyan: { primary: '#06b6d4', glow: 'rgba(6, 182, 212, 0.5)', border: 'border-cyan-500/30', bg: 'bg-cyan-500/10', text: 'text-cyan-400' },
+  purple: { primary: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)', border: 'border-purple-500/30', bg: 'bg-purple-500/10', text: 'text-purple-400' },
+  blue: { primary: '#3b82f6', glow: 'rgba(59, 130, 246, 0.5)', border: 'border-blue-500/30', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+  green: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)', border: 'border-green-500/30', bg: 'bg-green-500/10', text: 'text-green-400' },
+  amber: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', border: 'border-amber-500/30', bg: 'bg-amber-500/10', text: 'text-amber-400' },
+  emerald: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+  orange: { primary: '#f97316', glow: 'rgba(249, 115, 22, 0.5)', border: 'border-orange-500/30', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+};
+
 export default function SandboxOverview() {
   const wallet = useWallet();
 
   return (
-    <div className="space-y-8 pb-10">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6 pb-10 max-w-6xl"
+    >
       {/* Hero Section */}
-      <div className="relative isolate overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-0 right-0 -z-10 w-[600px] h-[300px] bg-gradient-to-b from-cyan-500/10 to-transparent blur-3xl opacity-30 pointer-events-none" />
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative isolate overflow-hidden"
+      >
+        {/* Animated background glow */}
+        <motion.div
+          animate={{
+            opacity: [0.2, 0.4, 0.2],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{ duration: 4, repeat: Infinity }}
+          className="absolute top-0 right-0 -z-10 w-[600px] h-[300px] bg-gradient-to-b from-cyan-500/10 to-transparent blur-3xl pointer-events-none"
+        />
 
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex items-end justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Sandbox Overview</h1>
-            <p className="text-slate-400 max-w-xl">
+            <motion.h1
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-2xl font-bold text-white mb-2 tracking-tight"
+              style={{ textShadow: '0 0 30px rgba(6, 182, 212, 0.3)' }}
+            >
+              Sandbox Overview
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm text-slate-400 max-w-xl"
+            >
               Explore the capabilities of the ArcPay Protocol. Test integrations, manage wallets, and debug webhooks in a safe environment.
-            </p>
+            </motion.p>
           </div>
-          <div className="flex gap-2">
-            <a
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <GlowButton
+              as="a"
               href={ARC_TESTNET.faucet}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg hover:border-cyan-500/40 transition-all flex items-center gap-2"
+              icon={
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              }
             >
-              <span>Get Testnet Tokens</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-            </a>
-          </div>
+              Get Testnet Tokens
+            </GlowButton>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Network Status Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="col-span-2 relative group overflow-hidden bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 p-5 transition-all hover:border-slate-700/80">
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        {/* Wallet Status Card */}
+        <motion.div
+          variants={listItem}
+          whileHover={{ scale: 1.01 }}
+          className="col-span-2 relative group overflow-hidden bg-slate-900/50 rounded-lg border border-slate-800/40 p-4 transition-all"
+        >
+          {/* Corner markers */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyan-500/30 rounded-tl" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyan-500/30 rounded-tr" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyan-500/30 rounded-bl" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyan-500/30 rounded-br" />
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Pulse Animation */}
               <div className="relative">
-                <div className={`w-3 h-3 rounded-full ${wallet.isConnected ? 'bg-green-500' : 'bg-slate-500'} transition-colors`} />
-                {wallet.isConnected && <div className="absolute inset-0 w-3 h-3 rounded-full bg-green-500 animate-ping opacity-75" />}
+                <motion.div
+                  animate={wallet.isConnected ? {
+                    boxShadow: ['0 0 0 0 rgba(34, 197, 94, 0.4)', '0 0 0 8px rgba(34, 197, 94, 0)', '0 0 0 0 rgba(34, 197, 94, 0)']
+                  } : undefined}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className={`w-3 h-3 rounded-full ${wallet.isConnected ? 'bg-green-500' : 'bg-slate-500'} transition-colors`}
+                />
               </div>
 
               <div>
-                <div className="text-xs font-mono text-slate-500 mb-0.5">WALLET STATUS</div>
+                <div className="text-[10px] font-mono text-slate-500 uppercase mb-0.5">Wallet Status</div>
                 {wallet.isConnected ? (
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-mono text-white font-medium">{wallet.balance} ARC</span>
+                    <span
+                      className="text-sm font-mono text-white font-bold"
+                      style={{ textShadow: '0 0 15px rgba(6, 182, 212, 0.5)' }}
+                    >
+                      {wallet.balance} ARC
+                    </span>
                     <span className="text-xs text-slate-600">|</span>
-                    <span className="text-sm font-mono text-cyan-400">{wallet.formatAddress(wallet.address!)}</span>
+                    <span className="text-xs font-mono text-cyan-400">{wallet.formatAddress(wallet.address!)}</span>
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-400">Not connected</div>
+                  <div className="text-xs text-slate-400">Not connected</div>
                 )}
               </div>
             </div>
 
             {!wallet.isConnected && (
-              <button
+              <GlowButton
                 onClick={wallet.connect}
                 disabled={wallet.isConnecting}
-                className="px-4 py-2 text-sm font-medium bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50 disabled:shadow-none"
+                size="sm"
               >
                 {wallet.isConnecting ? 'Connecting...' : 'Connect Wallet'}
-              </button>
+              </GlowButton>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 p-5 flex flex-col justify-center">
+        {/* Network Card */}
+        <motion.div
+          variants={listItem}
+          whileHover={{ scale: 1.02 }}
+          className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 p-4 flex flex-col justify-center overflow-hidden"
+        >
+          {/* Corner markers */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-emerald-500/30 rounded-tl" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-emerald-500/30 rounded-tr" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-emerald-500/30 rounded-bl" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-emerald-500/30 rounded-br" />
+
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono text-slate-500">NETWORK</span>
-            <span className="px-2 py-0.5 text-[10px] font-mono bg-green-500/10 text-green-400 rounded border border-green-500/20">Active</span>
+            <span className="text-[10px] font-mono text-slate-500 uppercase">Network</span>
+            <StatusBadge status="active" label="Active" />
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-white font-medium">{ARC_TESTNET.name}</span>
-            <span className="text-xs font-mono text-slate-500">ID: {ARC_TESTNET.chainId}</span>
+            <span className="text-[10px] font-mono text-slate-500">ID: {ARC_TESTNET.chainId}</span>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Features Grid */}
       <div>
-        <div className="text-xs font-mono text-slate-500 mb-4 pl-1">SANDBOX MODULES</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {features.map((f) => {
-            const colorMap: Record<string, { hover: string; icon: string; target: string }> = {
-              cyan: { hover: 'group-hover:border-cyan-500/40', icon: 'bg-cyan-500/10 group-hover:text-cyan-400', target: 'text-cyan-400/70' },
-              purple: { hover: 'group-hover:border-purple-500/40', icon: 'bg-purple-500/10 group-hover:text-purple-400', target: 'text-purple-400/70' },
-              blue: { hover: 'group-hover:border-blue-500/40', icon: 'bg-blue-500/10 group-hover:text-blue-400', target: 'text-blue-400/70' },
-              green: { hover: 'group-hover:border-green-500/40', icon: 'bg-green-500/10 group-hover:text-green-400', target: 'text-green-400/70' },
-              amber: { hover: 'group-hover:border-amber-500/40', icon: 'bg-amber-500/10 group-hover:text-amber-400', target: 'text-amber-400/70' },
-              emerald: { hover: 'group-hover:border-emerald-500/40', icon: 'bg-emerald-500/10 group-hover:text-emerald-400', target: 'text-emerald-400/70' },
-              orange: { hover: 'group-hover:border-orange-500/40', icon: 'bg-orange-500/10 group-hover:text-orange-400', target: 'text-orange-400/70' },
-            };
-            const colors = colorMap[f.color];
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-[10px] font-mono text-slate-500 uppercase mb-3 pl-1"
+        >
+          Sandbox Modules
+        </motion.div>
+        <motion.div
+          variants={staggerContainer}
+          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          {features.map((f, index) => {
+            const colors = colorConfig[f.color];
             return (
-              <Link
+              <motion.div
                 key={f.href}
-                href={f.href}
-                className={`group relative p-6 bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 transition-all duration-300 hover:bg-slate-900/60 ${colors.hover}`}
+                variants={listItem}
+                whileHover={{ scale: 1.01, x: 3 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
-                <div className="flex gap-5">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${colors.icon} text-slate-400`}>
-                    {f.icon('w-6 h-6')}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-semibold text-white mb-2">{f.label}</h3>
-                    <p className="text-sm text-slate-400 leading-relaxed mb-3">{f.desc}</p>
-                    <div className={`text-xs font-medium ${colors.target}`}>
-                      <span className="text-slate-600">For:</span> {f.target}
+                <Link
+                  href={f.href}
+                  className={`group relative block p-4 bg-slate-900/50 rounded-lg border border-slate-800/40 transition-all duration-300 hover:bg-slate-900/70 hover:${colors.border} overflow-hidden`}
+                >
+                  {/* Corner markers */}
+                  <div className={`absolute top-0 left-0 w-2.5 h-2.5 border-l-2 border-t-2 ${colors.border} rounded-tl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute top-0 right-0 w-2.5 h-2.5 border-r-2 border-t-2 ${colors.border} rounded-tr opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute bottom-0 left-0 w-2.5 h-2.5 border-l-2 border-b-2 ${colors.border} rounded-bl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-r-2 border-b-2 ${colors.border} rounded-br opacity-50 group-hover:opacity-100 transition-opacity`} />
+
+                  {/* Hover glow effect */}
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at 20% 50%, ${colors.glow.replace('0.5', '0.1')}, transparent 50%)`,
+                    }}
+                  />
+
+                  <div className="flex gap-4 relative">
+                    <motion.div
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${colors.bg} text-slate-400 group-hover:${colors.text} transition-colors`}
+                      style={{
+                        boxShadow: `0 0 0 rgba(0,0,0,0)`,
+                      }}
+                    >
+                      {f.icon('w-5 h-5')}
+                    </motion.div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold text-white mb-1 group-hover:text-white transition-colors">{f.label}</h3>
+                      <p className="text-xs text-slate-400 leading-relaxed mb-2 line-clamp-2">{f.desc}</p>
+                      <div className={`text-[10px] ${colors.text} opacity-70`}>
+                        <span className="text-slate-600">For:</span> {f.target}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Hover arrow */}
-                <div className="absolute top-6 right-6 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-slate-500">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </div>
-              </Link>
+                  {/* Hover arrow */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -5 }}
+                    whileHover={{ opacity: 1, x: 0 }}
+                    className="absolute top-4 right-4 text-slate-500 group-hover:text-slate-400 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </motion.div>
+                </Link>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

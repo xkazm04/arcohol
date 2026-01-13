@@ -1,34 +1,153 @@
-import type { Endpoint, RevenueData } from './types';
+import type { Endpoint, RevenueData, CreditAccount, CreditTransaction, UsageStats } from './types';
 
 export const mockEndpoints: Endpoint[] = [
-  { id: 'ep_1', path: '/api/v1/analyze', method: 'POST', price: '0.05', currency: 'USDC', calls24h: 1234, revenue24h: '61.70', status: 'active' },
-  { id: 'ep_2', path: '/api/v1/data/market', method: 'GET', price: '0.01', currency: 'USDC', calls24h: 8567, revenue24h: '85.67', status: 'active' },
-  { id: 'ep_3', path: '/api/v1/generate', method: 'POST', price: '0.10', currency: 'USDC', calls24h: 456, revenue24h: '45.60', status: 'active' },
-  { id: 'ep_4', path: '/api/v1/export', method: 'GET', price: '0.50', currency: 'USDC', calls24h: 89, revenue24h: '44.50', status: 'paused' },
+  {
+    id: 'ep_1',
+    path: '/api/v1/analyze',
+    method: 'POST',
+    price: '0.05',
+    currency: 'USDC',
+    name: 'Content Analysis',
+    description: 'AI-powered content analysis',
+    calls24h: 1234,
+    calls30d: 28420,
+    revenue24h: '61.70',
+    revenue30d: '1421.00',
+    status: 'active',
+    rateLimitPerMinute: 60,
+  },
+  {
+    id: 'ep_2',
+    path: '/api/v1/data/market',
+    method: 'GET',
+    price: '0.01',
+    currency: 'USDC',
+    name: 'Market Data',
+    description: 'Real-time market data',
+    calls24h: 8567,
+    calls30d: 245000,
+    revenue24h: '85.67',
+    revenue30d: '2450.00',
+    status: 'active',
+    rateLimitPerMinute: 300,
+  },
+  {
+    id: 'ep_3',
+    path: '/api/v1/generate',
+    method: 'POST',
+    price: '0.10',
+    currency: 'USDC',
+    name: 'AI Generation',
+    description: 'Generate content using AI',
+    calls24h: 456,
+    calls30d: 12800,
+    revenue24h: '45.60',
+    revenue30d: '1280.00',
+    status: 'active',
+    rateLimitPerMinute: 30,
+  },
+  {
+    id: 'ep_4',
+    path: '/api/v1/translate',
+    method: 'POST',
+    price: '0.02',
+    currency: 'USDC',
+    name: 'Translation',
+    description: 'Multi-language translation',
+    calls24h: 2100,
+    calls30d: 65000,
+    revenue24h: '42.00',
+    revenue30d: '1300.00',
+    status: 'active',
+    rateLimitPerMinute: 100,
+  },
+  {
+    id: 'ep_5',
+    path: '/api/v1/export',
+    method: 'GET',
+    price: '0.50',
+    currency: 'USDC',
+    name: 'Data Export',
+    description: 'Export large datasets',
+    calls24h: 89,
+    calls30d: 2400,
+    revenue24h: '44.50',
+    revenue30d: '1200.00',
+    status: 'paused',
+    rateLimitPerMinute: 10,
+  },
+];
+
+export const mockAccounts: CreditAccount[] = [
+  {
+    id: 'acc_001',
+    externalCustomerId: 'cust_acme_corp',
+    balance: 245.50,
+    currency: 'USDC',
+    totalSpent: 1254.50,
+    totalRequests: 12540,
+    lowBalanceThreshold: 50,
+    active: true,
+    createdAt: '2024-01-15',
+  },
+  {
+    id: 'acc_002',
+    externalCustomerId: 'cust_beta_inc',
+    balance: 89.25,
+    currency: 'USDC',
+    totalSpent: 410.75,
+    totalRequests: 4108,
+    lowBalanceThreshold: 25,
+    active: true,
+    createdAt: '2024-02-03',
+  },
+  {
+    id: 'acc_003',
+    externalCustomerId: 'cust_gamma_llc',
+    balance: 5.00,
+    currency: 'USDC',
+    totalSpent: 995.00,
+    totalRequests: 9950,
+    lowBalanceThreshold: 10,
+    active: true,
+    createdAt: '2024-01-20',
+  },
+  {
+    id: 'acc_004',
+    externalCustomerId: 'cust_delta_io',
+    balance: 500.00,
+    currency: 'USDC',
+    totalSpent: 2500.00,
+    totalRequests: 25000,
+    lowBalanceThreshold: 100,
+    active: true,
+    createdAt: '2024-01-10',
+  },
+];
+
+export const mockTransactions: CreditTransaction[] = [
+  { id: 'tx_001', accountId: 'acc_001', type: 'deduction', amount: -0.05, balanceBefore: 245.55, balanceAfter: 245.50, endpoint: '/api/v1/analyze', createdAt: '2 min ago' },
+  { id: 'tx_002', accountId: 'acc_002', type: 'deduction', amount: -0.10, balanceBefore: 89.35, balanceAfter: 89.25, endpoint: '/api/v1/generate', createdAt: '5 min ago' },
+  { id: 'tx_003', accountId: 'acc_001', type: 'deposit', amount: 100.00, balanceBefore: 145.50, balanceAfter: 245.50, description: 'Customer deposit', createdAt: '1 hour ago' },
+  { id: 'tx_004', accountId: 'acc_003', type: 'deduction', amount: -0.02, balanceBefore: 5.02, balanceAfter: 5.00, endpoint: '/api/v1/translate', createdAt: '2 hours ago' },
+  { id: 'tx_005', accountId: 'acc_004', type: 'bonus', amount: 50.00, balanceBefore: 450.00, balanceAfter: 500.00, description: 'Promotional bonus', createdAt: '1 day ago' },
 ];
 
 export const revenueData: RevenueData[] = [
-  { day: 'Mon', amount: 145 },
-  { day: 'Tue', amount: 234 },
-  { day: 'Wed', amount: 189 },
-  { day: 'Thu', amount: 312 },
-  { day: 'Fri', amount: 267 },
-  { day: 'Sat', amount: 198 },
-  { day: 'Sun', amount: 237 },
+  { day: 'Mon', amount: 145, requests: 4500 },
+  { day: 'Tue', amount: 234, requests: 7200 },
+  { day: 'Wed', amount: 189, requests: 5800 },
+  { day: 'Thu', amount: 312, requests: 9600 },
+  { day: 'Fri', amount: 267, requests: 8200 },
+  { day: 'Sat', amount: 198, requests: 6100 },
+  { day: 'Sun', amount: 237, requests: 7300 },
 ];
 
-export const codeExample = `import { X402Client } from '@arcpay/x402'
-
-const client = new X402Client({
-  wallet: agentWallet,
-  network: 'base-sepolia'
-})
-
-// Automatically handles 402 Payment Required
-const response = await client.fetch('/api/v1/analyze', {
-  method: 'POST',
-  body: JSON.stringify({ data: 'your-data' })
-})
-
-// Payment settled instantly, response received
-console.log(response.data)`;
+export const usageStats: UsageStats = {
+  totalRequests: 353620,
+  totalRevenue: 7651.00,
+  avgResponseTime: 145,
+  successRate: 99.7,
+  activeAccounts: 4,
+  totalBalance: 839.75,
+};

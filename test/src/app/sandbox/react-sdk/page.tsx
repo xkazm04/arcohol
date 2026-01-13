@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 
 // Local imports
@@ -14,10 +15,12 @@ import {
   TransactionHistoryDemo,
   FiatOnRampDemo,
 } from './_components';
+import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
 
 export default function ReactSDKPage() {
   const [activeSection, setActiveSection] = useState<SectionId>('getting-started');
   const [activeCodeTab, setActiveCodeTab] = useState<CodeTab>('basic');
+  const [copied, setCopied] = useState(false);
 
   const isGettingStarted = activeSection === 'getting-started';
   const currentSection = sections.find((s) => s.id === activeSection)!;
@@ -43,77 +46,165 @@ export default function ReactSDKPage() {
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(codeExamples[activeSection][activeCodeTab]);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col overflow-hidden">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="h-[calc(100vh-100px)] flex flex-col overflow-hidden"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 shrink-0">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-4 shrink-0"
+      >
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">React SDK</h1>
-          <p className="text-sm text-slate-400">
+          <h1
+            className="text-lg font-semibold text-white mb-1"
+            style={{ textShadow: '0 0 20px rgba(6, 182, 212, 0.3)' }}
+          >
+            React SDK
+          </h1>
+          <p className="text-xs text-slate-400 max-w-xl">
             Drop-in components for payments, invoices, and subscriptions
           </p>
         </div>
-        <div className="text-xs font-mono text-slate-500">@arcpay/react v1.0.0</div>
-      </div>
+        <motion.div
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-[10px] font-mono text-cyan-400"
+        >
+          @arcpay/react v1.0.0
+        </motion.div>
+      </motion.div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-2 shrink-0">
-        {sections.map((s) => (
-          <button
+      <motion.div
+        variants={listItem}
+        className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-2 shrink-0"
+      >
+        {sections.map((s, index) => (
+          <motion.button
             key={s.id}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + index * 0.05 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
               setActiveSection(s.id);
               setActiveCodeTab('basic');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+            className={`relative px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all border ${
               activeSection === s.id
-                ? 'bg-cyan-500 text-black'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+                : 'bg-slate-900/50 text-slate-400 border-slate-800/40 hover:bg-slate-800/50 hover:text-white'
             }`}
           >
-            {s.label}
-          </button>
+            {activeSection === s.id && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute inset-0 bg-cyan-500/10 rounded-lg border border-cyan-500/30"
+                style={{ boxShadow: '0 0 15px rgba(6, 182, 212, 0.2)' }}
+              />
+            )}
+            <span className="relative z-10">{s.label}</span>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Component Description */}
-      <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 p-4 mb-4 shrink-0">
-        <div className="flex items-start justify-between gap-8">
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-white mb-1">{currentSection.label}</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">{currentSection.description}</p>
-          </div>
-          <div className="shrink-0 max-w-xs">
-            <div className="text-xs font-medium text-slate-500 mb-1">Best for</div>
-            <p className="text-xs text-cyan-400/80 leading-relaxed">{currentSection.useCase}</p>
-          </div>
-        </div>
-      </div>
+      <motion.div
+        variants={listItem}
+        className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 p-4 mb-4 shrink-0 overflow-hidden"
+      >
+        {/* Corner markers */}
+        <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyan-500/30 rounded-tl" />
+        <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyan-500/30 rounded-tr" />
+        <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyan-500/30 rounded-bl" />
+        <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyan-500/30 rounded-br" />
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-start justify-between gap-8"
+          >
+            <div className="flex-1">
+              <h2
+                className="text-sm font-semibold text-white mb-1"
+                style={{ textShadow: '0 0 10px rgba(6, 182, 212, 0.3)' }}
+              >
+                {currentSection.label}
+              </h2>
+              <p className="text-xs text-slate-400 leading-relaxed">{currentSection.description}</p>
+            </div>
+            <div className="shrink-0 max-w-xs">
+              <div className="text-[10px] font-mono text-slate-500 uppercase mb-1">Best for</div>
+              <p className="text-[10px] text-cyan-400/80 leading-relaxed">{currentSection.useCase}</p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
 
       {/* Main Content - Stacked Layout */}
       <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
         {/* Preview */}
-        <div className="bg-slate-900/40 backdrop-blur-sm rounded-xl border border-slate-800/60 flex flex-col shrink-0">
-          <div className="px-4 py-2 border-b border-slate-800/60 flex justify-between items-center bg-slate-900/50">
+        <motion.div
+          variants={listItem}
+          className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 flex flex-col shrink-0 overflow-hidden"
+        >
+          {/* Corner markers */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-purple-500/30 rounded-tl z-10" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-purple-500/30 rounded-tr z-10" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-purple-500/30 rounded-bl z-10" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-purple-500/30 rounded-br z-10" />
+
+          <div className="px-4 py-2.5 border-b border-slate-800/40 flex justify-between items-center bg-slate-900/30">
             <div className="flex gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-600/50" />
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-600/50" />
-              <div className="w-2.5 h-2.5 rounded-full bg-slate-600/50" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
             </div>
-            <span className="text-xs font-mono text-slate-500">
+            <span className="text-[10px] font-mono text-slate-500">
               {isGettingStarted ? 'Setup Guide' : 'Live Preview'}
             </span>
           </div>
           <div className="flex items-center justify-center p-6 bg-slate-950/30 min-h-[200px]">
-            {renderDemo()}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSection + activeCodeTab}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderDemo()}
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
 
         {/* Code */}
-        <div className="bg-[#0d1117] rounded-xl border border-slate-800 flex flex-col shrink-0">
-          <div className="flex items-center justify-between bg-[#161b22] border-b border-slate-700">
+        <motion.div
+          variants={listItem}
+          className="relative bg-[#1e1e1e] rounded-lg border border-slate-800 flex flex-col shrink-0 overflow-hidden"
+        >
+          {/* Corner markers */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-emerald-500/30 rounded-tl z-10" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-emerald-500/30 rounded-tr z-10" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-emerald-500/30 rounded-bl z-10" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-emerald-500/30 rounded-br z-10" />
+
+          <div className="flex items-center justify-between bg-[#252526] border-b border-black/20">
             <div className="flex">
               <CodeTabButton
                 label="Basic"
@@ -131,12 +222,24 @@ export default function ReactSDKPage() {
                 onClick={() => setActiveCodeTab('hook')}
               />
             </div>
-            <button
+            <GlowButton
+              size="sm"
+              variant={copied ? 'secondary' : 'primary'}
               onClick={handleCopyCode}
-              className="px-3 py-2 text-[10px] text-slate-400 hover:text-white uppercase"
+              icon={
+                copied ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                )
+              }
             >
-              Copy
-            </button>
+              {copied ? 'Copied!' : 'Copy'}
+            </GlowButton>
           </div>
           <div className="overflow-auto">
             <SyntaxHighlighter
@@ -145,7 +248,7 @@ export default function ReactSDKPage() {
               customStyle={{
                 margin: 0,
                 borderRadius: 0,
-                fontSize: '12px',
+                fontSize: '11px',
                 background: 'transparent',
                 padding: '1rem',
               }}
@@ -155,9 +258,9 @@ export default function ReactSDKPage() {
               {codeExamples[activeSection][activeCodeTab]}
             </SyntaxHighlighter>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -172,15 +275,24 @@ function CodeTabButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      className={`px-4 py-2.5 text-xs font-medium transition-colors ${
+      whileHover={{ backgroundColor: 'rgba(6, 182, 212, 0.05)' }}
+      whileTap={{ scale: 0.98 }}
+      className={`relative px-4 py-2.5 text-[11px] font-medium transition-colors ${
         isActive
-          ? 'text-cyan-400 bg-[#0d1117] border-b-2 border-cyan-400'
+          ? 'text-emerald-400'
           : 'text-slate-400 hover:text-white'
       }`}
     >
+      {isActive && (
+        <motion.div
+          layoutId="activeCodeTab"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400"
+          style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}
+        />
+      )}
       {label}
-    </button>
+    </motion.button>
   );
 }

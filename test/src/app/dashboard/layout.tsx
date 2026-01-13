@@ -4,14 +4,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { WelcomeModal } from '@/components/dashboard';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { href: '/dashboard/credits', label: 'Credits', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { href: '/dashboard/transactions', label: 'Transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+  { href: '/dashboard/credits', label: 'Assets', icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
+  { href: '/dashboard/subscriptions', label: 'Subscriptions', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
   { href: '/dashboard/invoices', label: 'Invoices', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
   { href: '/dashboard/disputes', label: 'Disputes', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
-  { href: '/dashboard/treasury', label: 'Treasury', icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
-  { href: '/dashboard/agents', label: 'Agents', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { href: '/dashboard/agents', label: 'Marketing', icon: 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055zM20.488 9H15V3.512A9.025 9.025 0 0120.488 9z' },
+  { href: '/dashboard/api-keys', label: 'API Keys', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
   { href: '/dashboard/x402', label: 'x402 API', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
   { href: '/dashboard/crosschain', label: 'CrossChain', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
   { href: '/dashboard/webhooks', label: 'Webhooks', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
@@ -42,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -59,16 +63,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .from('org_profiles')
         .select('current_organization_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.current_organization_id) {
+      let orgId = profile?.current_organization_id;
+
+      // If no organization in profile, try to find one owned by user
+      if (!orgId) {
+        const { data: ownedOrg } = await supabase
+          .from('organizations')
+          .select('id, name, logo_url')
+          .eq('owner_id', user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (ownedOrg) {
+          orgId = ownedOrg.id;
+          setOrganization(ownedOrg);
+        }
+      } else {
         const { data: org } = await supabase
           .from('organizations')
           .select('*')
-          .eq('id', profile.current_organization_id)
-          .single();
+          .eq('id', orgId)
+          .maybeSingle();
 
         setOrganization(org);
+      }
+
+      // Check if user has any API keys - show welcome modal if not
+      if (orgId) {
+        const { data: apiKeys, count } = await supabase
+          .from('api_keys')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', orgId)
+          .is('revoked_at', null);
+
+        // Check localStorage to see if user dismissed the modal before
+        const dismissedKey = `arcpay_welcome_dismissed_${user.id}`;
+        const wasDismissed = localStorage.getItem(dismissedKey);
+
+        if ((count === 0 || count === null) && !wasDismissed) {
+          setShowWelcomeModal(true);
+        }
       }
 
       setIsLoading(false);
@@ -80,6 +116,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    // Save dismissal to localStorage so we don't show it again
+    if (user) {
+      const dismissedKey = `arcpay_welcome_dismissed_${user.id}`;
+      localStorage.setItem(dismissedKey, 'true');
+    }
   };
 
   if (isLoading) {
@@ -219,6 +264,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
         `}</style>
       </main>
+
+      {/* Welcome Modal for Onboarding */}
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={handleCloseWelcomeModal}
+        userName={user?.user_metadata?.full_name?.split(' ')[0]}
+      />
     </div>
   );
 }

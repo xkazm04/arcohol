@@ -6,10 +6,10 @@ import { MockB2BProvider } from '@/mocks/MockB2BProvider';
 
 const b2bNavItems = [
   { href: '/sandbox/b2b', label: 'Overview' },
-  { href: '/sandbox/b2b/credits', label: 'Credits' },
+  { href: '/sandbox/b2b/credits', label: 'Subscriptions' },
+  { href: '/sandbox/b2b/usdy', label: 'USDY' },
   { href: '/sandbox/b2b/invoices', label: 'Invoices' },
   { href: '/sandbox/b2b/disputes', label: 'Disputes' },
-  { href: '/sandbox/b2b/treasury', label: 'Treasury' },
   { href: '/sandbox/b2b/agents', label: 'Agents' },
   { href: '/sandbox/b2b/x402', label: 'x402 API' },
   { href: '/sandbox/b2b/crosschain', label: 'CrossChain' },

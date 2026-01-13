@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useWallet, useBalance } from '@/mocks/MockArcPayProvider';
 import { initialChecks, type Check, type OverallStatus } from './_lib';
 import { HealthStats, DiagnosticConsole } from './_components';
+import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
 
 export default function HealthCheckPage() {
   const wallet = useWallet();
@@ -83,60 +85,84 @@ export default function HealthCheckPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="space-y-4 max-w-5xl"
+    >
       {/* Header & Controls */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">Health Monitor</h1>
-          <p className="text-sm text-slate-400 max-w-lg">Real-time diagnostics for SDK configuration, network connectivity, and RPC latency. Troubleshoot integration issues and verify your setup before going to production.</p>
+          <h1
+            className="text-lg font-semibold text-white mb-1"
+            style={{ textShadow: '0 0 20px rgba(16, 185, 129, 0.3)' }}
+          >
+            Health Monitor
+          </h1>
+          <p className="text-xs text-slate-400 max-w-lg">Real-time diagnostics for SDK configuration, network connectivity, and RPC latency.</p>
         </div>
         <div className="flex items-center gap-4">
           {lastRun && (
             <div className="text-right">
-              <div className="text-xs font-medium text-slate-500">Last Verification</div>
-              <div className="text-sm text-slate-300">Just now</div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase">Last Verification</div>
+              <div className="text-xs text-slate-300">Just now</div>
             </div>
           )}
-          <button
+          <GlowButton
             onClick={runChecks}
             disabled={running}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${running
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'
-              }`}
+            variant={running ? 'secondary' : 'primary'}
+            icon={
+              running ? (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )
+            }
           >
-            {running ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                Running...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                Run Diagnostics
-              </>
-            )}
-          </button>
+            {running ? 'Running...' : 'Run Diagnostics'}
+          </GlowButton>
         </div>
-      </div>
+      </motion.div>
 
       {/* Hero Stats */}
-      <HealthStats
-        overall={overall}
-        running={running}
-        stats={stats}
-        totalChecks={checks.length}
-      />
+      <motion.div variants={listItem}>
+        <HealthStats
+          overall={overall}
+          running={running}
+          stats={stats}
+          totalChecks={checks.length}
+        />
+      </motion.div>
 
-      {/* Progress Bar (Visible when running) */}
-      <div className={`h-1 w-full bg-slate-800 rounded-full overflow-hidden transition-opacity duration-300 ${running ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="h-full bg-emerald-500 transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
-      </div>
+      {/* Progress Bar */}
+      <motion.div
+        variants={listItem}
+        className={`relative h-1.5 w-full bg-slate-800 rounded-full overflow-hidden transition-opacity duration-300 ${running ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3 }}
+          className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+          style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}
+        />
+      </motion.div>
 
       {/* Diagnostic Console */}
-      <div className="space-y-4">
+      <motion.div variants={listItem} className="space-y-4">
         <DiagnosticConsole checks={checks} />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
