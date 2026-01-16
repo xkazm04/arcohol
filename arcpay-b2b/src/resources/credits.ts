@@ -25,7 +25,6 @@ import type {
 import {
   validateString,
   validateAmount,
-  validateOptional,
   validateMetadata,
 } from '../utils/validation';
 

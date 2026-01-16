@@ -75,7 +75,10 @@ export default function DisputesPage() {
     setTerminalText('');
 
     for (let i = 0; i < terminalLines.length; i++) {
-      await new Promise(r => setTimeout(r, 600));
+      // Faster timing (150ms) for the detailed evaluation output
+      // Empty lines get shorter delay
+      const delay = terminalLines[i] === '' ? 50 : 150;
+      await new Promise(r => setTimeout(r, delay));
       setTerminalText(prev => prev + terminalLines[i] + '\n');
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { auditLogger, reminderScheduler } from '@/features/invoices';
 
 // GET: Get a single invoice
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -204,6 +205,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (updateError) {
       throw updateError;
+    }
+
+    // Log audit event
+    const actor = { type: 'user' as const, id: user.id, email: user.email || undefined };
+
+    if (body.status !== undefined && body.status !== currentInv.status) {
+      await auditLogger.logStatusChanged(id, currentInv.status, body.status, actor);
+    } else {
+      await auditLogger.logUpdated(
+        id,
+        { status: currentInv.status },
+        {
+          status: inv.status,
+          amount: parseFloat(inv.amount),
+          dueDate: inv.due_date,
+        },
+        actor
+      );
+    }
+
+    // Reschedule reminders if due date changed
+    if (body.dueDate !== undefined && inv.due_date) {
+      await reminderScheduler.rescheduleReminders(id, new Date(inv.due_date));
     }
 
     return NextResponse.json({

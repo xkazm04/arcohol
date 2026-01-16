@@ -15,10 +15,14 @@ import {
   TransactionHistoryDemo,
   FiatOnRampDemo,
 } from './_components';
-import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
+import { GlowButton, staggerContainer, listItem, TabSwitcher, useTabValue } from '@/components/dashboard';
+
+// Convert sections to TabItem format
+const tabItems = sections.map(s => ({ id: s.id, label: s.label }));
 
 export default function ReactSDKPage() {
-  const [activeSection, setActiveSection] = useState<SectionId>('getting-started');
+  // Use URL-synced tab value
+  const activeSection = useTabValue('section', tabItems, 'getting-started') as SectionId;
   const [activeCodeTab, setActiveCodeTab] = useState<CodeTab>('basic');
   const [copied, setCopied] = useState(false);
 
@@ -84,38 +88,14 @@ export default function ReactSDKPage() {
       </motion.div>
 
       {/* Tab Navigation */}
-      <motion.div
-        variants={listItem}
-        className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-2 shrink-0"
-      >
-        {sections.map((s, index) => (
-          <motion.button
-            key={s.id}
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + index * 0.05 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              setActiveSection(s.id);
-              setActiveCodeTab('basic');
-            }}
-            className={`relative px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all border ${
-              activeSection === s.id
-                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-                : 'bg-slate-900/50 text-slate-400 border-slate-800/40 hover:bg-slate-800/50 hover:text-white'
-            }`}
-          >
-            {activeSection === s.id && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute inset-0 bg-cyan-500/10 rounded-lg border border-cyan-500/30"
-                style={{ boxShadow: '0 0 15px rgba(6, 182, 212, 0.2)' }}
-              />
-            )}
-            <span className="relative z-10">{s.label}</span>
-          </motion.button>
-        ))}
+      <motion.div variants={listItem} className="mb-4 shrink-0">
+        <TabSwitcher
+          tabs={tabItems}
+          urlParamKey="section"
+          defaultTab="getting-started"
+          onChange={() => setActiveCodeTab('basic')}
+          layoutId="reactSdkTab"
+        />
       </motion.div>
 
       {/* Component Description */}

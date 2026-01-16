@@ -127,7 +127,7 @@ export class UsdyResource extends BaseResource {
     return this.request<PaginatedList<UsdyTransaction>>({
       method: 'GET',
       path: '/usdy/transactions',
-      params: params as Record<string, string | number | boolean | undefined>,
+      query: params as unknown as Record<string, unknown>,
     });
   }
 
@@ -305,7 +305,7 @@ export class UsdyResource extends BaseResource {
     return this.request<PaginatedList<YieldAccrual>>({
       method: 'GET',
       path: '/usdy/yield-history',
-      params: params as Record<string, string | number | boolean | undefined>,
+      query: params as unknown as Record<string, unknown>,
     });
   }
 
@@ -318,7 +318,7 @@ export class UsdyResource extends BaseResource {
     return this.request<{ data: ApyHistoryEntry[] }>({
       method: 'GET',
       path: '/usdy/apy-history',
-      params: params as Record<string, string | number | boolean | undefined>,
+      query: params as unknown as Record<string, unknown>,
     });
   }
 }
@@ -350,11 +350,11 @@ export class UsdyResource extends BaseResource {
  */
 export class Usdy {
   private readonly resource: UsdyResource;
-  private readonly treasuryId: string;
 
   constructor(options: { usdy: UsdyResource; treasuryId: string }) {
     this.resource = options.usdy;
-    this.treasuryId = options.treasuryId;
+    // treasuryId reserved for future treasury-scoped operations
+    void options.treasuryId;
   }
 
   /**

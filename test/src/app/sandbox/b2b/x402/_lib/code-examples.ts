@@ -3,22 +3,22 @@ import type { SectionId, CodeTab } from './types';
 export const codeExamples: Record<SectionId, Record<CodeTab, string>> = {
   'getting-started': {
     basic: `// Initialize API Credits
-import { ArcPayCredits } from '@arcpay/credits'
+import { ArcPayB2B } from '@arcpay/b2b'
 
-const credits = new ArcPayCredits({
+const arcpay = new ArcPayB2B({
   apiKey: process.env.ARCPAY_API_KEY!,
   organizationId: 'org_your_org_id',
 })
 
 // Check a customer's balance
-const account = await credits.accounts.get('cust_acme_corp')
+const account = await arcpay.credits.getAccount('cust_acme_corp')
 
 console.log('Balance:', account.balance, account.currency)
 console.log('Total spent:', account.totalSpent)`,
     full: `// Full credits configuration
-import { ArcPayCredits } from '@arcpay/credits'
+import { ArcPayB2B } from '@arcpay/b2b'
 
-const credits = new ArcPayCredits({
+const arcpay = new ArcPayB2B({
   apiKey: process.env.ARCPAY_API_KEY!,
   organizationId: 'org_your_org_id',
   environment: 'production',
@@ -55,12 +55,12 @@ const credits = new ArcPayCredits({
 })
 
 // Initialize and verify connection
-await credits.initialize()
+await arcpay.initialize()
 console.log('Credits system initialized')`,
     hook: `// React hook for credits dashboard
 'use client'
 
-import { useCreditsOverview } from '@arcpay/credits/react'
+import { useCreditsOverview } from '@arcpay/b2b/react'
 
 export function CreditsDashboard() {
   const {
@@ -115,7 +115,7 @@ export function CreditsDashboard() {
   },
   endpoints: {
     basic: `// Create a monetized endpoint
-const endpoint = await credits.endpoints.create({
+const endpoint = await arcpay.credits.createEndpoint({
   path: '/api/v1/analyze',
   method: 'POST',
   pricePerCall: 0.05,
@@ -126,13 +126,13 @@ const endpoint = await credits.endpoints.create({
 console.log('Endpoint created:', endpoint.id)
 
 // List all endpoints
-const endpoints = await credits.endpoints.list()
+const endpoints = await arcpay.credits.listEndpoints()
 endpoints.forEach(ep => {
   console.log(\`\${ep.method} \${ep.path}: $\${ep.pricePerCall}\`)
 })`,
     full: `// Full endpoint configuration
 // Create endpoint with rate limiting
-const endpoint = await credits.endpoints.create({
+const endpoint = await arcpay.credits.createEndpoint({
   path: '/api/v1/generate',
   method: 'POST',
   pricePerCall: 0.10,
@@ -156,7 +156,7 @@ const endpoint = await credits.endpoints.create({
 })
 
 // Create wildcard endpoint (matches /api/v1/data/*)
-const wildcardEndpoint = await credits.endpoints.create({
+const wildcardEndpoint = await arcpay.credits.createEndpoint({
   path: '/api/v1/data/*',
   method: '*', // Match all methods
   pricePerCall: 0.01,
@@ -165,13 +165,13 @@ const wildcardEndpoint = await credits.endpoints.create({
 })
 
 // Update endpoint pricing
-await credits.endpoints.update(endpoint.id, {
+await arcpay.credits.updateEndpoint(endpoint.id, {
   pricePerCall: 0.12,
   active: true,
 })
 
 // Get endpoint statistics
-const stats = await credits.endpoints.getStats(endpoint.id, {
+const stats = await arcpay.credits.getEndpointStats(endpoint.id, {
   period: '30d',
 })
 
@@ -180,14 +180,14 @@ console.log('Revenue:', stats.totalRevenue)
 console.log('Avg response time:', stats.avgResponseTime)
 
 // Disable endpoint
-await credits.endpoints.update(endpoint.id, {
+await arcpay.credits.updateEndpoint(endpoint.id, {
   active: false,
 })`,
     hook: `// React hook for endpoint management
 'use client'
 
 import { useState } from 'react'
-import { useCreditEndpoints } from '@arcpay/credits/react'
+import { useCreditEndpoints } from '@arcpay/b2b/react'
 
 export function EndpointsManager() {
   const {
@@ -275,7 +275,7 @@ export function EndpointsManager() {
   },
   accounts: {
     basic: `// Create a customer credit account
-const account = await credits.accounts.create({
+const account = await arcpay.credits.createAccount({
   externalCustomerId: 'cust_acme_corp',
   initialBalance: 100,
   currency: 'USDC',
@@ -285,7 +285,7 @@ console.log('Account created:', account.id)
 console.log('Balance:', account.balance)
 
 // Deposit credits
-const deposit = await credits.accounts.deposit(account.id, {
+const deposit = await arcpay.credits.deposit(account.id, {
   amount: 50,
   description: 'Customer payment',
 })
@@ -293,7 +293,7 @@ const deposit = await credits.accounts.deposit(account.id, {
 console.log('New balance:', deposit.balanceAfter)`,
     full: `// Full account management
 // Create account with full configuration
-const account = await credits.accounts.create({
+const account = await arcpay.credits.createAccount({
   externalCustomerId: 'cust_enterprise_001',
   initialBalance: 500,
   currency: 'USDC',
@@ -321,7 +321,7 @@ const account = await credits.accounts.create({
 })
 
 // Deposit with transaction details
-const deposit = await credits.accounts.deposit(account.id, {
+const deposit = await arcpay.credits.deposit(account.id, {
   amount: 250,
   type: 'deposit',
   description: 'Monthly credit purchase',
@@ -339,14 +339,14 @@ const deposit = await credits.accounts.deposit(account.id, {
 })
 
 // Add promotional bonus
-await credits.accounts.deposit(account.id, {
+await arcpay.credits.deposit(account.id, {
   amount: 25,
   type: 'bonus',
   description: 'Welcome bonus',
 })
 
 // Get account with transaction history
-const details = await credits.accounts.get(account.id, {
+const details = await arcpay.credits.getAccount(account.id, {
   includeTransactions: true,
   transactionLimit: 50,
 })
@@ -355,15 +355,15 @@ console.log('Balance:', details.balance)
 console.log('Recent transactions:', details.transactions.length)
 
 // Suspend account (e.g., for non-payment)
-await credits.accounts.suspend(account.id, {
+await arcpay.credits.suspendAccount(account.id, {
   reason: 'Failed payment verification',
 })
 
 // Reactivate account
-await credits.accounts.activate(account.id)
+await arcpay.credits.activateAccount(account.id)
 
 // List accounts with filters
-const accounts = await credits.accounts.list({
+const accounts = await arcpay.credits.listAccounts({
   active: true,
   lowBalance: true, // Only accounts below threshold
   search: 'acme',
@@ -373,7 +373,7 @@ const accounts = await credits.accounts.list({
 'use client'
 
 import { useState } from 'react'
-import { useCreditAccounts } from '@arcpay/credits/react'
+import { useCreditAccounts } from '@arcpay/b2b/react'
 
 export function AccountsManager() {
   const {
@@ -467,7 +467,7 @@ export function AccountsManager() {
 // app/api/v1/analyze/route.ts
 
 import { NextResponse } from 'next/server'
-import { withCredits } from '@arcpay/credits/nextjs'
+import { withCredits } from '@arcpay/b2b/middleware/nextjs'
 
 export const POST = withCredits()(async (req, { credits }) => {
   // Credits already deducted at this point
@@ -487,7 +487,7 @@ export const POST = withCredits()(async (req, { credits }) => {
     full: `// Full middleware configuration
 // lib/credits-middleware.ts
 
-import { createCreditsMiddleware } from '@arcpay/credits/nextjs'
+import { createCreditsMiddleware } from '@arcpay/b2b/middleware/nextjs'
 import { createClient } from '@/lib/supabase/server'
 
 export const withCredits = createCreditsMiddleware({
@@ -585,7 +585,7 @@ export const POST = withCredits({
 })`,
     hook: `// Express middleware for Node.js
 import express from 'express'
-import { creditsMiddleware, createCreditsClient } from '@arcpay/credits'
+import { creditsMiddleware, ArcPayB2B } from '@arcpay/b2b'
 import { createClient } from '@supabase/supabase-js'
 
 const app = express()
@@ -595,11 +595,11 @@ const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
 )
-const creditsDb = createCreditsClient(supabase)
+const arcpay = new ArcPayB2B({ db: supabase })
 
 // Apply middleware to all /api/v1/* routes
 app.use('/api/v1/*', creditsMiddleware({
-  db: creditsDb,
+  client: arcpay,
   organizationId: process.env.ORG_ID!,
 
   getCustomerId: (req) => {
@@ -642,7 +642,7 @@ app.listen(3000, () => {
   },
   usage: {
     basic: `// Get usage statistics
-const stats = await credits.usage.getStats({
+const stats = await arcpay.credits.getUsageStats({
   period: '30d',
 })
 
@@ -651,7 +651,7 @@ console.log('Total revenue:', stats.totalRevenue)
 console.log('Success rate:', stats.successRate + '%')
 
 // Get usage by endpoint
-const byEndpoint = await credits.usage.byEndpoint({
+const byEndpoint = await arcpay.credits.getUsageByEndpoint({
   period: '30d',
   limit: 10,
 })
@@ -661,7 +661,7 @@ byEndpoint.forEach(ep => {
 })`,
     full: `// Comprehensive usage analytics
 // Get detailed stats with filters
-const stats = await credits.usage.getStats({
+const stats = await arcpay.credits.getUsageStats({
   period: '30d',
   accountId: 'acc_specific_customer', // Filter by customer
   endpointId: 'ep_specific_endpoint', // Filter by endpoint
@@ -686,7 +686,7 @@ stats.byEndpoint.forEach(ep => {
 })
 
 // Get customer rankings
-const topCustomers = await credits.usage.topCustomers({
+const topCustomers = await arcpay.credits.getTopCustomers({
   period: '30d',
   sortBy: 'revenue', // or 'requests'
   limit: 10,
@@ -699,14 +699,14 @@ topCustomers.forEach((customer, i) => {
 })
 
 // Export usage data
-const exportData = await credits.usage.export({
+const exportData = await arcpay.credits.exportUsage({
   period: '30d',
   format: 'csv', // or 'json'
   includeTransactions: true,
 })
 
 // Generate invoice data
-const invoiceData = await credits.usage.generateInvoice({
+const invoiceData = await arcpay.credits.generateInvoice({
   accountId: 'acc_customer_id',
   period: {
     start: new Date('2024-01-01'),
@@ -719,7 +719,7 @@ console.log('Line items:', invoiceData.lineItems.length)`,
     hook: `// React hook for usage analytics
 'use client'
 
-import { useUsageStats, useUsageChart } from '@arcpay/credits/react'
+import { useUsageStats, useUsageChart } from '@arcpay/b2b/react'
 
 export function UsageAnalytics() {
   const {
@@ -801,15 +801,15 @@ export function UsageAnalytics() {
 // app/api/webhooks/credits/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ArcPayCredits } from '@arcpay/credits'
+import { ArcPayB2B } from '@arcpay/b2b'
 
-const credits = new ArcPayCredits({ apiKey: process.env.ARCPAY_API_KEY! })
+const arcpay = new ArcPayB2B({ apiKey: process.env.ARCPAY_API_KEY! })
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const signature = request.headers.get('x-arcpay-signature')!
 
-  const event = credits.webhooks.verify(body, signature)
+  const event = arcpay.webhooks.verify(body, signature)
 
   switch (event.type) {
     case 'credits.low_balance':
@@ -829,9 +829,9 @@ export async function POST(request: NextRequest) {
 // app/api/webhooks/credits/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ArcPayCredits, CreditEvent } from '@arcpay/credits'
+import { ArcPayB2B, CreditEvent } from '@arcpay/b2b'
 
-const credits = new ArcPayCredits({ apiKey: process.env.ARCPAY_API_KEY! })
+const arcpay = new ArcPayB2B({ apiKey: process.env.ARCPAY_API_KEY! })
 const WEBHOOK_SECRET = process.env.ARCPAY_WEBHOOK_SECRET!
 
 export async function POST(request: NextRequest) {
@@ -845,7 +845,7 @@ export async function POST(request: NextRequest) {
   let event: CreditEvent
 
   try {
-    event = credits.webhooks.verify(body, signature, WEBHOOK_SECRET)
+    event = arcpay.webhooks.verify(body, signature, WEBHOOK_SECRET)
   } catch (err) {
     console.error('Webhook verification failed:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -956,7 +956,7 @@ async function handleAutoTopup(data: {
     hook: `// React hook for real-time credit events
 'use client'
 
-import { useCreditEvents } from '@arcpay/credits/react'
+import { useCreditEvents } from '@arcpay/b2b/react'
 import { toast } from 'sonner'
 
 export function CreditEventsMonitor() {

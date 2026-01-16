@@ -56,6 +56,9 @@ export {
   TreasuryResource,
   Treasury,
   WebhooksResource,
+  X402Resource,
+  X402Gateway,
+  SUPPORTED_NETWORKS,
 } from './resources';
 
 // ==========================================================================
@@ -227,6 +230,28 @@ export type {
   VerifyWebhookParams,
   WebhookHandler,
   WebhookHandlers,
+} from './types';
+
+// ==========================================================================
+// Types - x402 Gateway
+// ==========================================================================
+
+export type {
+  GatewayBalance,
+  CombinedBalances,
+  SupportedNetwork,
+  PaymentRequirements,
+  PaymentPayload,
+  VerifyResult,
+  SettleResult,
+  CrossChainWithdrawParams,
+  CrossChainWithdrawResult,
+  GatewaySellerConfig,
+  UpsertSellerConfigParams,
+  GatewayPayment,
+  ListGatewayPaymentsParams,
+  X402EventType,
+  X402Event,
 } from './types';
 
 // ==========================================================================

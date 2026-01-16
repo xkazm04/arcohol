@@ -41,6 +41,14 @@ export const sections: SectionInfo[] = [
       'API platforms, cloud services, and consumption-based pricing models.',
   },
   {
+    id: 'micro-subscriptions',
+    label: 'Micro Subscriptions',
+    description:
+      'x402 gasless micropayments for per-use billing. Pre-authorize spend limits and batch settle charges for minimal gas costs.',
+    useCase:
+      'AI API usage, pay-per-request services, IoT data streaming, and fractional payments.',
+  },
+  {
     id: 'webhooks',
     label: 'Webhooks',
     description:

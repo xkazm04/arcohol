@@ -2,7 +2,7 @@
  * USDY Yield Management Types
  */
 
-import type { Identifiable, Timestamped, Money, PaginationParams } from './common';
+import type { Identifiable, Timestamped, PaginationParams } from './common';
 
 // ==========================================================================
 // USDY Stats

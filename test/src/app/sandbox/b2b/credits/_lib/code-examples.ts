@@ -423,6 +423,164 @@ export function UsageDashboard({ subscriptionId }) {
   )
 }`,
   },
+  'micro-subscriptions': {
+    basic: `// Create a micro subscription plan for per-use billing
+const plan = await arcpay.subscriptions.createMicroPlan({
+  name: 'AI API Usage',
+  description: 'Pay per API call with x402 gasless payments',
+  pricePerUnit: '$0.01',
+  unitName: 'request',
+  network: 'eip155:5042002', // Arc testnet
+  sellerAddress: '0x1234...5678',
+})
+
+// Customer authorizes spending with EIP-3009 signature
+const auth = await arcpay.subscriptions.authorizeMicro({
+  subscriptionId: 'sub_micro_xyz',
+  signature: customerSignature,
+  amount: '$50.00', // Pre-authorize up to $50
+})
+
+console.log('Authorized:', auth.authorizedAmount)
+console.log('Remaining:', auth.remainingAmount)`,
+    full: `// Full micro subscription setup
+import { ArcPayB2B } from '@arcpay/b2b'
+
+const arcpay = new ArcPayB2B({
+  apiKey: process.env.ARCPAY_API_KEY!,
+  environment: 'production',
+})
+
+// Create micro plan with limits
+const plan = await arcpay.subscriptions.createMicroPlan({
+  name: 'Premium AI Tokens',
+  description: 'GPT-4 API access with usage-based billing',
+
+  // Pricing
+  pricePerUnit: '$0.002',
+  unitName: 'token',
+  billingType: 'per_unit',
+
+  // x402 Settlement
+  network: 'eip155:5042002',
+  sellerAddress: process.env.MERCHANT_WALLET!,
+
+  // Limits to protect customers
+  minCharge: '$0.01',        // Batch small charges
+  maxChargePerDay: '$10.00', // Daily cap
+  maxChargePerMonth: '$100', // Monthly cap
+
+  // Features for display
+  features: [
+    'GPT-4 Turbo access',
+    'Priority queue',
+    'Usage analytics',
+  ],
+
+  metadata: {
+    model: 'gpt-4-turbo',
+    tier: 'premium',
+  },
+})
+
+// Create subscription for customer
+const subscription = await arcpay.subscriptions.createMicro({
+  microPlanId: plan.id,
+  payerAddress: '0xcustomer...wallet',
+  payerEmail: 'customer@example.com',
+})
+
+// Record charges as usage occurs
+const charge = await arcpay.subscriptions.chargeMicro({
+  subscriptionId: subscription.id,
+  units: 1500,
+  description: 'API call: /v1/chat/completions',
+})
+
+console.log('Charge recorded:', charge.amount)
+console.log('Total charged:', subscription.totalCharged)
+
+// Batch settle pending charges (gasless via x402)
+const settlement = await arcpay.subscriptions.settleMicroBatch({
+  network: 'eip155:5042002',
+  maxCharges: 100,
+})
+
+console.log('Settled:', settlement.totalCharges, 'charges')
+console.log('Total amount:', settlement.totalAmount)`,
+    hook: `// React hook for micro subscriptions
+'use client'
+
+import { useMicroSubscriptions } from '@arcpay/b2b/react'
+
+export function MicroUsageDashboard({ subscriptionId }) {
+  const {
+    subscription,
+    charges,
+    stats,
+    isLoading,
+    authorize,
+    isAuthorizing,
+    refetch,
+  } = useMicroSubscriptions(subscriptionId)
+
+  if (isLoading) return <div>Loading...</div>
+
+  const handleAuthorize = async () => {
+    // Request wallet signature for spend authorization
+    const signature = await getWalletSignature()
+
+    await authorize({
+      signature,
+      amount: '$100.00',
+    })
+  }
+
+  return (
+    <div className="micro-dashboard">
+      <div className="stats">
+        <div className="stat">
+          <span className="label">Total Spent</span>
+          <span className="value">\${subscription?.totalCharged || '0.00'}</span>
+        </div>
+        <div className="stat">
+          <span className="label">Authorized</span>
+          <span className="value">\${subscription?.authorizedAmount || '0.00'}</span>
+        </div>
+        <div className="stat">
+          <span className="label">Remaining</span>
+          <span className="value">
+            \${(parseFloat(subscription?.authorizedAmount || '0') -
+               parseFloat(subscription?.totalCharged || '0')).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      <div className="plan-info">
+        <h3>{subscription?.microPlan?.name}</h3>
+        <p>{subscription?.microPlan?.pricePerUnit} per {subscription?.microPlan?.unitName}</p>
+      </div>
+
+      <div className="charges">
+        <h4>Recent Charges</h4>
+        {charges.slice(0, 10).map((charge) => (
+          <div key={charge.id} className="charge">
+            <span>{charge.units} {subscription?.microPlan?.unitName}s</span>
+            <span>\${charge.amount}</span>
+            <span className={\`status \${charge.status}\`}>{charge.status}</span>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={handleAuthorize} disabled={isAuthorizing}>
+        {isAuthorizing ? 'Authorizing...' : 'Authorize More Spend'}
+      </button>
+
+      <button onClick={refetch}>Refresh</button>
+    </div>
+  )
+}`,
+  },
   webhooks: {
     basic: `// Webhook endpoint for subscription events
 // app/api/webhooks/subscriptions/route.ts

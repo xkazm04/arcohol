@@ -4,7 +4,13 @@
       "Bash(cat:*)",
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(tree:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "Bash(dir /b \"C:\\\\Users\\\\kazda\\\\kiro\\\\arc\")",
+      "Bash(findstr:*)",
+      "Bash(grep:*)"
     ]
   }
 }

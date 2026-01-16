@@ -1,22 +1,83 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useWallet, ARC_TESTNET } from '../../hooks/useWallet';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useWallet } from '../../hooks/useWallet';
 import { MockArcPayProvider } from '../../mocks/MockArcPayProvider';
+import { NetworkProvider, useNetwork, type NetworkType } from './_context';
 
-const navItems = [
-  { href: '/sandbox', label: 'Overview', icon: 'grid', exact: true },
-  { href: '/sandbox/wallet', label: 'Wallet Integration', icon: 'wallet' },
-  { href: '/sandbox/react-sdk', label: 'React SDK', icon: 'component' },
-  { href: '/sandbox/b2b', label: 'B2B Suite', icon: 'building' },
-  { href: '/sandbox/api-explorer', label: 'API Explorer', icon: 'code' },
-  { href: '/sandbox/webhooks', label: 'Webhooks', icon: 'webhook' },
-  { href: '/sandbox/health', label: 'Health Monitor', icon: 'heart' },
-  { href: '/sandbox/generator', label: 'Code Generator', icon: 'sparkles' },
+// Menu structure with submenus
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: string;
+  exact?: boolean;
+  special?: boolean; // For unique styling (like Wallet Integration)
+  external?: boolean;
+}
+
+interface MenuSection {
+  id: string;
+  label: string;
+  icon: string;
+  items: MenuItem[];
+}
+
+const menuSections: MenuSection[] = [
+  {
+    id: 'react-sdk',
+    label: 'React SDK',
+    icon: 'component',
+    items: [
+      { href: '/sandbox/wallet', label: 'Wallet Integration', icon: 'wallet', special: true, external: true },
+      { href: '/sandbox/react-sdk?section=getting-started', label: 'Getting Started', icon: 'play' },
+      { href: '/sandbox/react-sdk?section=checkout', label: 'Checkout', icon: 'cart' },
+      { href: '/sandbox/react-sdk?section=invoice', label: 'Invoice', icon: 'document' },
+      { href: '/sandbox/react-sdk?section=plans', label: 'PlanSelector', icon: 'layers' },
+      { href: '/sandbox/react-sdk?section=balance', label: 'Balance', icon: 'coin' },
+      { href: '/sandbox/react-sdk?section=transaction-history', label: 'TransactionHistory', icon: 'history' },
+      { href: '/sandbox/react-sdk?section=fiat-on-ramp', label: 'Fiat On-Ramp', icon: 'credit-card' },
+    ],
+  },
+  {
+    id: 'b2b-suite',
+    label: 'B2B Suite',
+    icon: 'building',
+    items: [
+      { href: '/sandbox/b2b', label: 'Overview', icon: 'grid', exact: true },
+      { href: '/sandbox/b2b/credits', label: 'Subscriptions', icon: 'refresh' },
+      { href: '/sandbox/b2b/usdy', label: 'USDY', icon: 'chart' },
+      { href: '/sandbox/b2b/invoices', label: 'Invoices', icon: 'document' },
+      { href: '/sandbox/b2b/disputes', label: 'Disputes', icon: 'shield' },
+      { href: '/sandbox/b2b/agents', label: 'Agents', icon: 'robot' },
+      { href: '/sandbox/b2b/x402', label: 'x402 API', icon: 'api' },
+      { href: '/sandbox/b2b/crosschain', label: 'CrossChain', icon: 'link' },
+      { href: '/sandbox/b2b/webhooks', label: 'Webhooks', icon: 'webhook' },
+      { href: '/sandbox/b2b/settings', label: 'Settings', icon: 'gear' },
+    ],
+  },
+  {
+    id: 'api-explorer',
+    label: 'API Explorer',
+    icon: 'code',
+    items: [
+      { href: '/sandbox/api-explorer?hook=useWallet', label: 'useWallet', icon: 'function' },
+      { href: '/sandbox/api-explorer?hook=useBalance', label: 'useBalance', icon: 'function' },
+      { href: '/sandbox/api-explorer?hook=useTransfer', label: 'useTransfer', icon: 'function' },
+      { href: '/sandbox/api-explorer?hook=useTransactionHistory', label: 'useTransactionHistory', icon: 'function' },
+    ],
+  },
 ];
 
-function NavIcon({ icon, className = 'w-4 h-4' }: { icon: string; className?: string }) {
+const standaloneItems: MenuItem[] = [
+  { href: '/sandbox', label: 'Overview', icon: 'grid', exact: true },
+  { href: '/sandbox/webhooks', label: 'Webhooks', icon: 'webhook' },
+  { href: '/sandbox/health', label: 'Health Monitor', icon: 'heart' },
+];
+
+function NavIcon({ icon, className = 'w-3.5 h-3.5' }: { icon: string; className?: string }) {
   switch (icon) {
     case 'grid':
       return (
@@ -60,15 +121,287 @@ function NavIcon({ icon, className = 'w-4 h-4' }: { icon: string; className?: st
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       );
-    case 'sparkles':
+    case 'play':
       return (
         <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case 'cart':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      );
+    case 'document':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case 'layers':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      );
+    case 'coin':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case 'history':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case 'credit-card':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      );
+    case 'refresh':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      );
+    case 'chart':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      );
+    case 'robot':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      );
+    case 'api':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    case 'link':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      );
+    case 'gear':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      );
+    case 'function':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+        </svg>
+      );
+    case 'chevron':
+      return (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       );
     default:
       return null;
   }
+}
+
+function CollapsibleSection({ section, pathname, searchParams }: { section: MenuSection; pathname: string | null; searchParams: URLSearchParams }) {
+  // Helper to check if an item is active (considering both path and query params)
+  const isItemActive = (item: MenuItem): boolean => {
+    const [basePath, queryString] = item.href.split('?');
+
+    // First check if the base path matches
+    const pathMatches = item.exact
+      ? pathname === basePath
+      : pathname?.startsWith(basePath);
+
+    if (!pathMatches) return false;
+
+    // If there's no query string in the item href, just check path match
+    if (!queryString) return true;
+
+    // Parse the item's query params and check if they match current URL
+    const itemParams = new URLSearchParams(queryString);
+    for (const [key, value] of itemParams.entries()) {
+      if (searchParams.get(key) !== value) return false;
+    }
+
+    return true;
+  };
+
+  const isAnyItemActive = section.items.some(isItemActive);
+  const [isOpen, setIsOpen] = useState(isAnyItemActive);
+
+  return (
+    <div className="space-y-0.5">
+      {/* Section Header */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-all text-xs ${
+          isAnyItemActive
+            ? 'bg-cyan-500/5 text-cyan-400'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <NavIcon icon={section.icon} className="w-4 h-4" />
+          <span className="font-medium">{section.label}</span>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <NavIcon icon="chevron" className="w-3 h-3" />
+        </motion.div>
+      </button>
+
+      {/* Submenu Items */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="pl-3 ml-2 border-l border-slate-800/50 space-y-0.5 py-1">
+              {section.items.map((item) => {
+                const isActive = isItemActive(item);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md transition-all text-[11px] ${
+                      item.special
+                        ? isActive
+                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                          : 'text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/5 border border-transparent'
+                        : isActive
+                          ? 'bg-cyan-500/10 text-cyan-400'
+                          : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'
+                    }`}
+                  >
+                    <NavIcon icon={item.icon} className="w-3 h-3" />
+                    <span className={item.special ? 'font-medium' : ''}>{item.label}</span>
+                    {item.external && (
+                      <svg className="w-2.5 h-2.5 ml-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function NetworkSelector() {
+  const { network, config, setNetwork } = useNetwork();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const networks: { id: NetworkType; name: string; color: string }[] = [
+    { id: 'testnet', name: 'Arc Testnet', color: 'cyan' },
+    { id: 'mainnet', name: 'Arc Mainnet', color: 'emerald' },
+  ];
+
+  return (
+    <div className="relative flex items-center gap-2" ref={dropdownRef}>
+      {/* Faucet icon - only show for testnet */}
+      {network === 'testnet' && config.faucet && (
+        <a
+          href={config.faucet}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
+          title="Get Testnet Tokens"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </a>
+      )}
+
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/50 rounded border transition-all ${
+          isOpen ? 'border-cyan-500/50' : 'border-slate-800/50 hover:border-slate-700'
+        }`}
+      >
+        <div className={`w-2 h-2 rounded-full ${network === 'testnet' ? 'bg-cyan-500' : 'bg-emerald-500'}`} />
+        <span className="text-xs font-mono text-slate-300">{config.name}</span>
+        <span className="text-xs text-slate-600">ID:{config.chainId}</span>
+        <svg className={`w-3 h-3 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full mt-1 right-0 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50 min-w-[180px] overflow-hidden">
+          <div className="px-3 py-2 border-b border-slate-800">
+            <span className="text-[10px] font-mono text-slate-500 uppercase">Select Network</span>
+          </div>
+          {networks.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => {
+                setNetwork(n.id);
+                setIsOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
+                network === n.id
+                  ? 'bg-cyan-500/10 text-cyan-400'
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${n.color === 'cyan' ? 'bg-cyan-500' : 'bg-emerald-500'}`} />
+              <span className="text-xs font-mono">{n.name}</span>
+              {network === n.id && (
+                <svg className="w-3 h-3 ml-auto text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function WalletButton() {
@@ -133,8 +466,29 @@ function WalletButton() {
   );
 }
 
-export default function SandboxLayout({ children }: { children: React.ReactNode }) {
+function SidebarFooter() {
+  const { network, config } = useNetwork();
+
+  return (
+    <div className="absolute bottom-0 left-0 w-52 p-3 border-t border-slate-800/50 bg-[#080808]">
+      <div className="text-xs font-mono text-slate-600 space-y-1.5">
+        <div className="flex justify-between">
+          <span>SDK</span>
+          <span className="text-green-500">v1.0.0</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Network</span>
+          <span className={network === 'testnet' ? 'text-cyan-500' : 'text-emerald-500'}>{config.name}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SandboxContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { config } = useNetwork();
 
   return (
     <div className="h-screen w-full flex flex-col bg-[#050505] font-sans overflow-hidden">
@@ -155,58 +509,32 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
 
         <div className="flex-1" />
 
-        {/* Network Status */}
-        <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-900/50 rounded border border-slate-800/50">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-xs font-mono text-slate-400">{ARC_TESTNET.name}</span>
-          <span className="text-xs text-slate-600">ID:{ARC_TESTNET.chainId}</span>
-        </div>
+        {/* Network Selector (includes faucet icon for testnet) */}
+        <NetworkSelector />
+
+        {/* Block Explorer Link */}
+        <a
+          href={config.blockExplorer}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
+          title="Block Explorer"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
 
         {/* Wallet */}
         <WalletButton />
-
-        {/* Links */}
-        <div className="flex items-center gap-1">
-          <a
-            href={ARC_TESTNET.faucet}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
-            title="Get Testnet USDC"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </a>
-          <a
-            href={ARC_TESTNET.blockExplorer}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 text-slate-500 hover:text-cyan-400 transition-colors"
-            title="Block Explorer"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-          <a
-            href="https://github.com/ArcPay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-            </svg>
-          </a>
-        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
-        <nav className="w-52 border-r border-slate-800/50 bg-[#080808] shrink-0 overflow-y-auto">
-          <div className="p-3 space-y-1">
-            {navItems.map((item) => {
+        <nav className="w-52 border-r border-slate-800/50 bg-[#080808] shrink-0 overflow-y-auto pb-20">
+          <div className="p-2.5 space-y-1">
+            {/* Standalone Items at Top */}
+            {standaloneItems.slice(0, 1).map((item) => {
               const isActive = item.exact
                 ? pathname === item.href
                 : pathname?.startsWith(item.href);
@@ -214,13 +542,43 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-xs ${
                     isActive
                       ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
                   }`}
                 >
-                  <NavIcon icon={item.icon} className="w-4.5 h-4.5" />
+                  <NavIcon icon={item.icon} className="w-4 h-4" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+
+            <div className="h-px bg-slate-800/50 my-2" />
+
+            {/* Collapsible Sections */}
+            {menuSections.map((section) => (
+              <CollapsibleSection key={section.id} section={section} pathname={pathname} searchParams={searchParams} />
+            ))}
+
+            <div className="h-px bg-slate-800/50 my-2" />
+
+            {/* Standalone Items at Bottom */}
+            {standaloneItems.slice(1).map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname?.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all text-xs ${
+                    isActive
+                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
+                  }`}
+                >
+                  <NavIcon icon={item.icon} className="w-4 h-4" />
                   <span className="font-medium">{item.label}</span>
                 </Link>
               );
@@ -228,18 +586,7 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
           </div>
 
           {/* Sidebar Footer */}
-          <div className="absolute bottom-0 left-0 w-52 p-3 border-t border-slate-800/50 bg-[#080808]">
-            <div className="text-xs font-mono text-slate-600 space-y-1.5">
-              <div className="flex justify-between">
-                <span>SDK</span>
-                <span className="text-green-500">v1.0.0</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Network</span>
-                <span className="text-cyan-500">Arc Testnet</span>
-              </div>
-            </div>
-          </div>
+          <SidebarFooter />
         </nav>
 
         {/* Main Content */}
@@ -252,5 +599,13 @@ export default function SandboxLayout({ children }: { children: React.ReactNode 
         </main>
       </div>
     </div>
+  );
+}
+
+export default function SandboxLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NetworkProvider>
+      <SandboxContent>{children}</SandboxContent>
+    </NetworkProvider>
   );
 }

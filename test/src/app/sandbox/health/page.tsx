@@ -1,65 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useWallet, useBalance } from '@/mocks/MockArcPayProvider';
+import { useWallet } from '@/hooks/useWallet';
+import { useNetwork } from '../_context';
 import { initialChecks, type Check, type OverallStatus } from './_lib';
 import { HealthStats, DiagnosticConsole } from './_components';
 import { GlowButton, staggerContainer, listItem } from '@/components/dashboard';
 
 export default function HealthCheckPage() {
   const wallet = useWallet();
-  const balance = useBalance();
+  const { config, rpcCall, network } = useNetwork();
   const [checks, setChecks] = useState<Check[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [lastRun, setLastRun] = useState<Date | null>(null);
 
-  const runChecks = async () => {
+  const runChecks = useCallback(async () => {
     setRunning(true);
     setProgress(0);
-    const start = Date.now();
+    const startTime = Date.now();
 
     setChecks(initialChecks);
 
     const update = (id: string, status: Check['status'], message: string) => {
-      setChecks(prev => prev.map(c => c.id === id ? { ...c, status, message, duration: Date.now() - start } : c));
+      setChecks(prev => prev.map(c => c.id === id ? { ...c, status, message, duration: Date.now() - startTime } : c));
     };
 
-    // 1. Provider
-    update('c1', 'running', 'Verifying configuration...');
-    await new Promise(r => setTimeout(r, 400));
-    update('c1', 'pass', 'ArcPayProvider initialized successfully');
+    // 1. Provider Initialization - Check if network config is valid
+    update('c1', 'running', 'Verifying SDK configuration...');
+    await new Promise(r => setTimeout(r, 200));
+    try {
+      if (config.rpcUrl && config.chainId) {
+        update('c1', 'pass', `SDK configured for ${config.name}`);
+      } else {
+        update('c1', 'fail', 'Invalid network configuration');
+      }
+    } catch {
+      update('c1', 'fail', 'SDK configuration error');
+    }
     setProgress(20);
 
-    // 2. Network
-    update('c2', 'running', 'Pinging testnet...');
-    await new Promise(r => setTimeout(r, 300));
-    update('c2', 'pass', 'Connected to Arc Testnet');
+    // 2. Network Connectivity - Real RPC call
+    update('c2', 'running', `Pinging ${config.name}...`);
+    try {
+      const blockNumber = await rpcCall<string>('eth_blockNumber');
+      const blockNum = parseInt(blockNumber, 16);
+      update('c2', 'pass', `Connected - Block #${blockNum.toLocaleString()}`);
+    } catch (err) {
+      update('c2', 'fail', `Failed to connect: ${(err as Error).message}`);
+    }
     setProgress(40);
 
-    // 3. RPC
+    // 3. RPC Latency - Measure actual response time
     update('c3', 'running', 'Measuring latency...');
-    await new Promise(r => setTimeout(r, 500));
-    const latency = Math.floor(Math.random() * 50) + 20;
-    update('c3', latency > 100 ? 'warn' : 'pass', `${latency}ms response time`);
+    try {
+      const latencyStart = performance.now();
+      await rpcCall<string>('eth_chainId');
+      const latency = Math.round(performance.now() - latencyStart);
+
+      if (latency > 500) {
+        update('c3', 'fail', `${latency}ms - High latency detected`);
+      } else if (latency > 200) {
+        update('c3', 'warn', `${latency}ms - Elevated latency`);
+      } else {
+        update('c3', 'pass', `${latency}ms response time`);
+      }
+    } catch (err) {
+      update('c3', 'fail', `Latency check failed: ${(err as Error).message}`);
+    }
     setProgress(60);
 
-    // 4. Wallet
+    // 4. Wallet Connection - Real wallet state
     update('c4', 'running', 'Checking wallet state...');
-    await new Promise(r => setTimeout(r, 300));
-    if (wallet.isConnected) {
-      update('c4', 'pass', `Connected: ${wallet.address?.slice(0, 8)}...`);
+    await new Promise(r => setTimeout(r, 150));
+    if (wallet.isConnected && wallet.address) {
+      const shortAddr = `${wallet.address.slice(0, 8)}...${wallet.address.slice(-6)}`;
+      if (wallet.isCorrectNetwork) {
+        update('c4', 'pass', `Connected: ${shortAddr}`);
+      } else {
+        update('c4', 'warn', `Connected but wrong network: ${shortAddr}`);
+      }
     } else {
       update('c4', 'warn', 'No wallet connected. Some features unavailable.');
     }
     setProgress(80);
 
-    // 5. Balance
-    update('c5', 'running', 'Fetching assets...');
-    await new Promise(r => setTimeout(r, 300));
-    if (wallet.isConnected) {
-      update('c5', 'pass', `Balance: ${balance.balance} USDC`);
+    // 5. Balance Fetch - Real balance check
+    update('c5', 'running', 'Fetching balance...');
+    if (wallet.isConnected && wallet.address) {
+      try {
+        const balance = await rpcCall<string>('eth_getBalance', [wallet.address, 'latest']);
+        const balanceNum = parseInt(balance, 16) / 1e18;
+        update('c5', 'pass', `Balance: ${balanceNum.toFixed(4)} ${config.nativeCurrency.symbol}`);
+      } catch (err) {
+        update('c5', 'fail', `Balance fetch failed: ${(err as Error).message}`);
+      }
     } else {
       update('c5', 'pending', 'Skipped (No Wallet)');
     }
@@ -67,12 +103,11 @@ export default function HealthCheckPage() {
 
     setLastRun(new Date());
     setRunning(false);
-  };
+  }, [wallet, config, rpcCall]);
 
   useEffect(() => {
     runChecks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [network]); // Re-run when network changes
 
   const overall: OverallStatus = checks.some(c => c.status === 'fail') ? 'critical'
     : checks.some(c => c.status === 'warn') ? 'degraded'
@@ -104,13 +139,15 @@ export default function HealthCheckPage() {
           >
             Health Monitor
           </h1>
-          <p className="text-xs text-slate-400 max-w-lg">Real-time diagnostics for SDK configuration, network connectivity, and RPC latency.</p>
+          <p className="text-xs text-slate-400 max-w-lg">
+            Real-time diagnostics for SDK configuration, network connectivity, and RPC latency on <span className={network === 'testnet' ? 'text-cyan-400' : 'text-emerald-400'}>{config.name}</span>.
+          </p>
         </div>
         <div className="flex items-center gap-4">
           {lastRun && (
             <div className="text-right">
               <div className="text-[10px] font-mono text-slate-500 uppercase">Last Verification</div>
-              <div className="text-xs text-slate-300">Just now</div>
+              <div className="text-xs text-slate-300">{lastRun.toLocaleTimeString()}</div>
             </div>
           )}
           <GlowButton

@@ -318,3 +318,49 @@ export interface ChainConfig {
   };
   color: string;
 }
+
+// Treasury Agent Types
+export type TreasuryChainEnvironment = 'arc-testnet' | 'arc-mainnet';
+export type TreasuryAgentActionType = 'stake' | 'unstake' | 'scheduled_unstake';
+export type TreasuryAgentTriggerType = 'auto' | 'manual' | 'scheduled';
+export type TreasuryAgentActionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+export interface TreasuryAgentConfigRow {
+  id: string;
+  organization_id: string;
+  enabled: boolean;
+  chain: TreasuryChainEnvironment;
+  stake_threshold: number;
+  minimum_reserve: number;
+  stake_percentage: number;
+  cooldown_enabled: boolean;
+  cooldown_hours: number;
+  last_transaction_at?: string;
+  total_staked: number;
+  total_unstaked: number;
+  execution_count: number;
+  last_execution_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TreasuryAgentActionRow {
+  id: string;
+  organization_id: string;
+  config_id: string;
+  action_type: TreasuryAgentActionType;
+  amount: number;
+  trigger_type: TreasuryAgentTriggerType;
+  trigger_reason?: string;
+  scheduled_for?: string;
+  scheduled_reason?: string;
+  status: TreasuryAgentActionStatus;
+  error_message?: string;
+  usdc_balance_after?: number;
+  usdy_balance_after?: number;
+  tx_hash?: string;
+  chain: TreasuryChainEnvironment;
+  created_at: string;
+  executed_at?: string;
+  completed_at?: string;
+}

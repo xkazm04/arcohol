@@ -67,7 +67,7 @@ export default function X402Page() {
               API Credits & Monetization
             </h1>
             <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-[9px] font-medium rounded border border-cyan-500/30">
-              @arcpay/credits v1.0.0
+              @arcpay/b2b
             </span>
           </div>
           <p className="text-xs text-slate-400 max-w-xl">

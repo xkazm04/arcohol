@@ -198,13 +198,196 @@ await arcpay.credits.recordUsage('acc_xxx', {
 │  ├─ Payment Forms            │    ├─ Webhook Handler            │
 │  └─ Ramp Integration         │    └─ Middleware                 │
 ├─────────────────────────────────────────────────────────────────┤
+│  @arcpay/b2b (B2B SDK)                                          │
+│  ├─ Credits & Usage Metering │    ├─ x402 Gateway (NEW)         │
+│  ├─ Dispute Resolution       │    ├─ Cross-Chain Treasury       │
+│  ├─ Merchant Gateway         │    ├─ x402 Middleware            │
+│  └─ USDY Yield Management    │    └─ Gasless Payments           │
+├─────────────────────────────────────────────────────────────────┤
 │                    Arc Payment Infrastructure                    │
 │  ├─ Circle Wallets (MPC Security)                               │
 │  ├─ Arc Blockchain (USDC Settlement)                            │
+│  ├─ Circle Gateway (x402 Batching)                              │
 │  ├─ Coinbase Onramp (Fiat → USDC)                               │
 │  └─ Transak Offramp (USDC → Fiat)                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## x402 Gateway Integration (Circle Early Access)
+
+The platform now integrates Circle's x402 Batching SDK for **gasless micropayments**.
+
+### Installation (Private Beta)
+
+The `@circlefin/x402-batching` package is hosted on Circle's private Cloudsmith registry.
+
+**1. Set your Cloudsmith token** (provided by Circle team):
+
+```bash
+# Add to .env file
+CLOUDSMITH_TOKEN=your_cloudsmith_entitlement_token
+
+# Or export directly
+export CLOUDSMITH_TOKEN=your_token_here
+```
+
+**2. Install the SDK** (`.npmrc` files are already configured):
+
+```bash
+cd arcpay-b2b && npm install
+cd test && npm install
+```
+
+The `.npmrc` files configure npm to authenticate with Circle's registry for `@circlefin` scoped packages.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   x402 Gasless Payment Flow                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. DEPOSIT (One-time, on-chain)                                │
+│     Customer deposits USDC → Circle Gateway Contract             │
+│                                                                  │
+│  2. PAY (Gasless, per-request)                                  │
+│     Customer signs EIP-3009 message → Your API                  │
+│     No gas required! Instant response.                          │
+│                                                                  │
+│  3. SETTLE (Batched, ~5 min)                                    │
+│     Circle Gateway batches signatures → On-chain settlement     │
+│     Your wallet receives USDC automatically                     │
+│                                                                  │
+│  4. WITHDRAW (Cross-chain instant)                              │
+│     Withdraw to any supported chain (Arc, Base, ETH, Polygon)   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### New SDK Exports
+
+```typescript
+// Express middleware for x402 payment acceptance
+import { x402Middleware } from '@arcpay/b2b/middleware/express';
+
+const x402 = x402Middleware({
+  sellerAddress: '0x...',
+});
+
+app.get('/api/premium', x402.require('$0.01'), (req, res) => {
+  res.json({ premium: 'content', payment: req.x402Payment });
+});
+
+// Next.js route handler wrapper
+import { withX402 } from '@arcpay/b2b/middleware/nextjs';
+
+export const GET = withX402({
+  sellerAddress: '0x...',
+  price: '$0.05',
+})(async (request, { payment }) => {
+  return Response.json({ premium: 'data' });
+});
+
+// X402Resource for programmatic access
+const arcpay = new ArcPayB2B({ secretKey: 'sk_...' });
+
+// Get Gateway balance
+const balance = await arcpay.x402.getBalance('0x...');
+
+// Cross-chain withdrawal
+const withdrawal = await arcpay.x402.crossChainWithdraw({
+  amount: '1000.00',
+  sourceChain: 'arc',
+  destinationChain: 'base',
+  recipient: '0x...',
+});
+
+// Verify/settle payments
+const result = await arcpay.x402.settlePayment(payload, requirements);
+```
+
+### Dashboard Features
+
+The management dashboard (`/dashboard/x402`) now supports two billing modes:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **Credits** | Database-based prepaid credits | Traditional API billing |
+| **x402 Gateway** | Gasless micropayments via Circle | Low-value, high-frequency APIs |
+
+### Supported Networks
+
+| Network | Gasless Batching | Deposits/Withdrawals |
+|---------|-----------------|----------------------|
+| Arc Testnet | ✅ | ✅ |
+| Base Sepolia | - | ✅ |
+| Ethereum Sepolia | - | ✅ |
+| Base (mainnet) | Coming Soon | ✅ |
+| Arbitrum | Coming Soon | ✅ |
+| Polygon | Coming Soon | ✅ |
+
+---
+
+## Micropayment Subscriptions
+
+Enable sub-dollar recurring payments using x402 gasless micropayments.
+
+### Use Cases
+
+- **API Usage Billing**: Charge $0.001 per API call
+- **Streaming Services**: $0.05/hour of content
+- **IoT Data**: $0.0001 per sensor reading
+- **AI Inference**: $0.01 per model request
+
+### Plan Types
+
+| Billing Type | Description | Example |
+|--------------|-------------|---------|
+| `per_use` | Charge per action/request | $0.001 per API call |
+| `daily` | Daily recurring charge | $0.05 per day |
+| `hourly` | Hourly recurring charge | $0.01 per hour |
+| `per_minute` | Per-minute billing | $0.001 per minute |
+
+### SDK Usage
+
+```typescript
+import { useMicroSubscriptions } from '@/features/subscriptions';
+
+function MicroPaymentDashboard() {
+  const {
+    plans,
+    subscriptions,
+    createPlan,
+    chargeSubscription,
+  } = useMicroSubscriptions();
+
+  // Create a micropayment plan
+  const plan = await createPlan({
+    name: 'API Usage',
+    billingType: 'per_use',
+    pricePerUnit: '$0.001',
+    unitName: 'API call',
+    maxChargePerDay: '$10.00',
+    sellerAddress: '0x...',
+  });
+
+  // Charge a subscription
+  const charge = await chargeSubscription(subscriptionId, {
+    units: 100,
+    description: '100 API calls',
+    signature: '0x...', // EIP-3009 authorization
+  });
+}
+```
+
+### Spending Controls
+
+- **Daily Cap**: Maximum amount chargeable per day
+- **Monthly Cap**: Maximum amount chargeable per month
+- **Minimum Charge**: Minimum charge per transaction
+- **Automatic Pause**: Subscription pauses when limits reached
 
 ---
 
@@ -225,6 +408,9 @@ await arcpay.credits.recordUsage('acc_xxx', {
 | B2B Invoicing | - | - | ✅ |
 | Treasury Mgmt | - | - | ✅ |
 | Yield (USDY) | - | - | ✅ |
+| **x402 Gateway** | - | - | ✅ |
+| **Cross-Chain** | - | - | ✅ |
+| **Micro Subscriptions** | - | - | ✅ |
 | TypeScript | ✅ | ✅ | ✅ |
 | Testing Utils | ✅ | ✅ | ✅ |
 | Health Checks | ✅ | ✅ | ✅ |
@@ -259,16 +445,20 @@ await arcpay.credits.recordUsage('acc_xxx', {
 - ✅ Automated Dispute Resolution (LLM-powered)
 - ✅ Merchant Gateway with instant settlement
 - ✅ Treasury Management with USDY yield
+- ✅ **x402 Gateway Integration** (Circle Early Access)
+- ✅ **Cross-Chain Treasury Liquidity**
+- ✅ **Gasless Micropayment Middleware**
+- ✅ **x402 Invoice Payment Collection**
+- ✅ **Micropayment Subscriptions** (sub-dollar recurring payments)
 
 ### In Progress
-- Circle Gateway integration (crosschain USDC batching)
-- x402 Protocol for AI agent micropayments
 - Enhanced developer onboarding platform
 
 ### Future Directions
 - Mobile SDKs (React Native, Flutter)
 - White-label solutions
 - Multi-sig treasury workflows
+- x402 Mainnet deployment
 
 ---
 

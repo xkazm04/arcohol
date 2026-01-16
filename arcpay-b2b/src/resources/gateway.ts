@@ -28,15 +28,6 @@ import {
   validateMetadata,
 } from '../utils/validation';
 
-const SUPPORTED_CHAINS: Chain[] = [
-  'arc',
-  'ethereum',
-  'base',
-  'polygon',
-  'arbitrum',
-  'optimism',
-];
-
 export class GatewayResource extends BaseResource {
   constructor(config: ArcPayB2BConfig) {
     super(config);
@@ -209,6 +200,92 @@ export class GatewayResource extends BaseResource {
       }
       throw error;
     }
+  }
+
+  // ==========================================================================
+  // Invoice Delivery (Phase 3)
+  // ==========================================================================
+
+  /**
+   * Generate PDF for an invoice
+   */
+  async generateInvoicePDF(
+    invoiceId: string,
+    options?: { regenerate?: boolean }
+  ): Promise<{ url: string }> {
+    validateString(invoiceId, 'invoiceId');
+
+    return this.request<{ url: string }>({
+      method: 'GET',
+      path: `/invoices/${invoiceId}/pdf`,
+      query: options?.regenerate ? { regenerate: 'true' } : undefined,
+    });
+  }
+
+  /**
+   * Send invoice email to customer
+   */
+  async sendInvoiceEmail(
+    invoiceId: string,
+    options?: {
+      email?: string;
+      personalMessage?: string;
+      includePortalLink?: boolean;
+    }
+  ): Promise<{
+    success: boolean;
+    messageId?: string;
+    portalUrl?: string;
+    pdfUrl?: string;
+  }> {
+    validateString(invoiceId, 'invoiceId');
+
+    if (options?.email) {
+      validateEmail(options.email, 'email');
+    }
+
+    return this.request({
+      method: 'POST',
+      path: `/invoices/${invoiceId}/send`,
+      body: options,
+    });
+  }
+
+  /**
+   * Send invoice reminder email
+   */
+  async sendInvoiceReminder(
+    invoiceId: string,
+    options?: {
+      email?: string;
+      personalMessage?: string;
+    }
+  ): Promise<{ success: boolean; messageId?: string }> {
+    validateString(invoiceId, 'invoiceId');
+
+    if (options?.email) {
+      validateEmail(options.email, 'email');
+    }
+
+    return this.request({
+      method: 'POST',
+      path: `/invoices/${invoiceId}/remind`,
+      body: options,
+    });
+  }
+
+  /**
+   * Create a portal link for an invoice (buyer self-service)
+   */
+  async createPortalLink(
+    invoiceId: string
+  ): Promise<{ url: string; token: string; expiresAt: string }> {
+    validateString(invoiceId, 'invoiceId');
+
+    return this.request({
+      method: 'POST',
+      path: `/invoices/${invoiceId}/portal-link`,
+    });
   }
 
   // ==========================================================================

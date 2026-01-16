@@ -4,14 +4,20 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { hooks, type HookName, type LogEntry } from './_lib';
 import { HookExplorer } from './_components';
-import { Card, CardHeader, GlowButton, staggerContainer, listItem } from '@/components/dashboard';
+import { useNetwork } from '../_context';
+import { staggerContainer, listItem, TabSwitcher, useTabValue } from '@/components/dashboard';
+
+// Convert hooks to TabItem format
+const hookTabs = hooks.map(h => ({ id: h.name, label: h.name }));
 
 export default function APIExplorerPage() {
-  const [selected, setSelected] = useState<HookName>('useWallet');
+  // Use URL-synced tab value
+  const selected = useTabValue('hook', hookTabs, 'useWallet') as HookName;
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { network, config } = useNetwork();
 
   const addLog = (msg: string, type: 'info' | 'success' | 'error' = 'info') => {
-    setLogs(prev => [{ id: Date.now(), msg, type, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
+    setLogs(prev => [{ id: Date.now(), msg, type, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
   };
 
   const selectedHook = hooks.find(h => h.name === selected);
@@ -21,13 +27,13 @@ export default function APIExplorerPage() {
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
-      className="h-[calc(100vh-100px)] flex flex-col gap-4"
+      className="space-y-4"
     >
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between shrink-0"
+        className="flex items-center justify-between"
       >
         <div>
           <h1
@@ -36,7 +42,9 @@ export default function APIExplorerPage() {
           >
             API Explorer
           </h1>
-          <p className="text-xs text-slate-400 max-w-xl">Interactive playground to test SDK hooks in real-time.</p>
+          <p className="text-xs text-slate-400 max-w-xl">
+            Interactive playground to test SDK hooks on <span className={network === 'testnet' ? 'text-cyan-400' : 'text-emerald-400'}>{config.name}</span>.
+          </p>
         </div>
         <motion.div
           animate={{ opacity: [0.5, 1, 0.5] }}
@@ -48,57 +56,21 @@ export default function APIExplorerPage() {
         </motion.div>
       </motion.div>
 
-      <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
-        {/* Sidebar */}
-        <motion.div
-          variants={listItem}
-          className="col-span-3 flex flex-col gap-4 min-h-0"
-        >
-          <div className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 flex flex-col overflow-hidden h-full">
-            {/* Corner markers */}
-            <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-cyan-500/30 rounded-tl" />
-            <div className="absolute top-0 right-0 w-3 h-3 border-r-2 border-t-2 border-cyan-500/30 rounded-tr" />
-            <div className="absolute bottom-0 left-0 w-3 h-3 border-l-2 border-b-2 border-cyan-500/30 rounded-bl" />
-            <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-cyan-500/30 rounded-br" />
+      {/* Hook Tab Navigation */}
+      <motion.div variants={listItem} className="mb-4">
+        <TabSwitcher
+          tabs={hookTabs}
+          urlParamKey="hook"
+          defaultTab="useWallet"
+          layoutId="apiExplorerTab"
+        />
+      </motion.div>
 
-            <div className="p-2.5 border-b border-slate-800/40 bg-slate-900/50">
-              <span className="text-[10px] font-mono text-slate-500 uppercase">Available Hooks</span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {hooks.map((h, index) => (
-                <motion.button
-                  key={h.name}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + index * 0.05 }}
-                  whileHover={{ x: 3 }}
-                  onClick={() => setSelected(h.name)}
-                  className={`w-full p-2.5 rounded-lg text-left transition-all group relative ${selected === h.name
-                      ? 'bg-cyan-500/10 text-cyan-400'
-                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                    }`}
-                >
-                  {selected === h.name && (
-                    <motion.div
-                      layoutId="activeIndicator"
-                      className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-500 rounded-l-lg"
-                      style={{ boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)' }}
-                    />
-                  )}
-                  <div className="text-[11px] font-mono font-medium mb-0.5">{h.name}</div>
-                  <div className="text-[9px] opacity-60 truncate">{h.description}</div>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Main Content */}
-        <div className="col-span-9 flex flex-col gap-4 min-h-0 overflow-y-auto pr-2">
+      <div className="space-y-4">
           {/* Active Hook Workspace */}
           <motion.div
             variants={listItem}
-            className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 flex flex-col overflow-hidden"
+            className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 overflow-hidden"
           >
             {/* Corner markers */}
             <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-purple-500/30 rounded-tl" />
@@ -135,12 +107,39 @@ export default function APIExplorerPage() {
             </div>
           </motion.div>
 
-          {/* Bottom Area: Logs & Code Scan */}
-          <motion.div variants={staggerContainer} className="grid grid-cols-2 gap-3">
-            {/* Console Log */}
+          {/* Vertical Stack: Current State, Console Output, Example Usage */}
+          <motion.div variants={staggerContainer} className="space-y-3">
+            {/* 1. Current State Info */}
             <motion.div
               variants={listItem}
-              className="relative bg-black/40 rounded-lg border border-slate-800/40 p-3 h-40 overflow-hidden flex flex-col"
+              className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 p-4 overflow-hidden"
+            >
+              {/* Corner markers */}
+              <div className="absolute top-0 left-0 w-2.5 h-2.5 border-l-2 border-t-2 border-blue-500/30 rounded-tl" />
+              <div className="absolute top-0 right-0 w-2.5 h-2.5 border-r-2 border-t-2 border-blue-500/30 rounded-tr" />
+              <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-l-2 border-b-2 border-blue-500/30 rounded-bl" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-r-2 border-b-2 border-blue-500/30 rounded-br" />
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-xs font-mono text-blue-400 font-medium">Current State</span>
+                </div>
+                <div className="flex-1 h-px bg-slate-800" />
+                <span className={`text-[10px] font-mono ${network === 'testnet' ? 'text-cyan-400' : 'text-emerald-400'}`}>{config.name}</span>
+              </div>
+
+              <div className="text-xs text-slate-400">
+                <p>The <code className="text-cyan-400 bg-slate-800/50 px-1 rounded">{selected}</code> hook provides real-time state management for {selectedHook?.description.toLowerCase()}. Connect your wallet to see live data from {config.name}.</p>
+              </div>
+            </motion.div>
+
+            {/* 2. Console Output */}
+            <motion.div
+              variants={listItem}
+              className="relative bg-black/40 rounded-lg border border-slate-800/40 p-4 overflow-hidden"
             >
               {/* Corner markers */}
               <div className="absolute top-0 left-0 w-2.5 h-2.5 border-l-2 border-t-2 border-emerald-500/30 rounded-tl" />
@@ -148,12 +147,19 @@ export default function APIExplorerPage() {
               <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-l-2 border-b-2 border-emerald-500/30 rounded-bl" />
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-r-2 border-b-2 border-emerald-500/30 rounded-br" />
 
-              <div className="text-[10px] font-mono text-slate-500 uppercase mb-2 flex justify-between">
-                <span>Console Output</span>
-                <button onClick={() => setLogs([])} className="text-slate-600 hover:text-white transition-colors">Clear</button>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-xs font-mono text-emerald-400 font-medium">Console Output</span>
+                </div>
+                <div className="flex-1 h-px bg-slate-800" />
+                <button onClick={() => setLogs([])} className="text-[10px] text-slate-600 hover:text-white transition-colors font-mono">Clear</button>
               </div>
-              <div className="flex-1 overflow-y-auto space-y-1 font-mono text-[10px]">
-                {logs.length === 0 && <span className="text-slate-600 italic">No events yet...</span>}
+
+              <div className="h-32 overflow-y-auto space-y-1 font-mono text-[10px]">
+                {logs.length === 0 && <span className="text-slate-600 italic">Execute actions above to see console output...</span>}
                 <AnimatePresence>
                   {logs.map(log => (
                     <motion.div
@@ -174,10 +180,10 @@ export default function APIExplorerPage() {
               </div>
             </motion.div>
 
-            {/* Usage Snippet */}
+            {/* 3. Example Usage */}
             <motion.div
               variants={listItem}
-              className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 p-3 h-40 flex flex-col overflow-hidden"
+              className="relative bg-slate-900/50 rounded-lg border border-slate-800/40 p-4 overflow-hidden"
             >
               {/* Corner markers */}
               <div className="absolute top-0 left-0 w-2.5 h-2.5 border-l-2 border-t-2 border-amber-500/30 rounded-tl" />
@@ -185,22 +191,66 @@ export default function APIExplorerPage() {
               <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-l-2 border-b-2 border-amber-500/30 rounded-bl" />
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-r-2 border-b-2 border-amber-500/30 rounded-br" />
 
-              <div className="text-[10px] font-mono text-slate-500 uppercase mb-2">Example Usage</div>
-              <div className="flex-1 bg-slate-950 rounded-lg p-2.5 overflow-auto border border-slate-800/50">
-                <pre className="text-[10px] font-mono text-slate-400">
-                  {`import { ${selected} } from '@arcpay/react'
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  <span className="text-xs font-mono text-amber-400 font-medium">Example Usage</span>
+                </div>
+                <div className="flex-1 h-px bg-slate-800" />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`import { ${selected} } from '@arcpay/react'
 
 function Component() {
   const {
-    ${selectedHook?.returns.slice(0, 2).join(',\n    ')}
+    ${selectedHook?.returns.slice(0, 3).join(',\n    ')}
   } = ${selected}()
-}`}
+
+  // Your component logic here
+}`);
+                  }}
+                  className="text-[10px] text-slate-600 hover:text-amber-400 transition-colors font-mono flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </button>
+              </div>
+
+              <div className="bg-slate-950 rounded-lg p-3 border border-slate-800/50">
+                <pre className="text-[11px] font-mono text-slate-400 overflow-x-auto">
+                  <span className="text-purple-400">import</span>{' '}
+                  <span className="text-slate-300">{'{ '}</span>
+                  <span className="text-cyan-400">{selected}</span>
+                  <span className="text-slate-300">{' }'}</span>
+                  <span className="text-purple-400"> from</span>{' '}
+                  <span className="text-emerald-400">&apos;@arcpay/react&apos;</span>
+                  {'\n\n'}
+                  <span className="text-purple-400">function</span>{' '}
+                  <span className="text-amber-400">Component</span>
+                  <span className="text-slate-300">() {'{'}</span>
+                  {'\n  '}
+                  <span className="text-purple-400">const</span>{' '}
+                  <span className="text-slate-300">{'{'}</span>
+                  {'\n    '}
+                  <span className="text-cyan-300">{selectedHook?.returns.slice(0, 3).join(',\n    ')}</span>
+                  {'\n  '}
+                  <span className="text-slate-300">{'}'}</span>
+                  <span className="text-slate-500"> = </span>
+                  <span className="text-cyan-400">{selected}</span>
+                  <span className="text-slate-300">()</span>
+                  {'\n\n  '}
+                  <span className="text-slate-600">// Your component logic here</span>
+                  {'\n'}
+                  <span className="text-slate-300">{'}'}</span>
                 </pre>
               </div>
             </motion.div>
           </motion.div>
         </div>
-      </div>
     </motion.div>
   );
 }

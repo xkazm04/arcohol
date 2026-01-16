@@ -13,7 +13,11 @@
       "Bash(wc:*)",
       "Bash(tree:*)",
       "Bash(ls:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(set CLOUDSMITH_TOKEN=s0mJ8lJ2pZWlsih0)",
+      "Bash(CLOUDSMITH_TOKEN=s0mJ8lJ2pZWlsih0 npm install:*)",
+      "Bash(npm config set:*)",
+      "Bash(curl:*)"
     ]
   }
 }

@@ -3,6 +3,7 @@ export type SectionId =
   | 'create-subscription'
   | 'manage-subscriptions'
   | 'usage-metering'
+  | 'micro-subscriptions'
   | 'webhooks'
   | 'dashboard-api';
 

@@ -162,7 +162,7 @@ export function usageMiddleware(options: UsageMiddlewareOptions): RequestHandler
       ? client
       : new ArcPayB2B(client);
 
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     // Check if should skip
     if (skipIf && skipIf(req)) {
       next();

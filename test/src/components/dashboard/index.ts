@@ -10,6 +10,7 @@ export { FormInput, FormTextarea } from './ui/FormInput';
 export { FormSelect } from './ui/FormSelect';
 export { ToggleSwitch, InlineToggle } from './ui/ToggleSwitch';
 export { FilterTabs, ButtonGroup } from './ui/FilterTabs';
+export { TabSwitcher, useTabValue, type TabItem } from './ui/TabSwitcher';
 
 // Layout Components
 export { Card, CardHeader, CardBody, CardFooter } from './layout/Card';
@@ -24,7 +25,21 @@ export { EmptyState, InlineEmpty } from './feedback/EmptyState';
 export { AlertBanner, DismissibleAlert, Toast } from './feedback/AlertBanner';
 
 // Onboarding Components
-export { WelcomeModal } from './onboarding';
+export { WelcomeModal, OnboardingModal } from './onboarding';
 
 // Charts
 export { BarChart, TrendLine, DonutChart, ProgressBar } from './charts';
+
+// Invoice Components
+export {
+  X402PayModal,
+  AuditTrail,
+  CompactAuditTrail,
+  BulkActionBar,
+  useBulkSelection,
+  ExportModal,
+  ReminderRulesModal,
+  ScheduleSendModal,
+  TaxConfigurationPage,
+} from './invoices';
+export type { BulkAction, BulkActionOptions, ExportParams, ScheduleParams } from './invoices';

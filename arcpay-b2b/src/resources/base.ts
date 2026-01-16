@@ -5,7 +5,6 @@
 import type { ArcPayB2BConfig, PaginatedList, PaginationParams } from '../types';
 import {
   ArcPayB2BError,
-  AuthenticationError,
   NetworkError,
   TimeoutError,
   createErrorFromResponse,
@@ -137,9 +136,9 @@ export abstract class BaseResource {
   /**
    * Make a paginated list request
    */
-  protected async listRequest<T>(
+  protected async listRequest<T, P extends PaginationParams = PaginationParams>(
     path: string,
-    params?: PaginationParams & Record<string, unknown>
+    params?: P
   ): Promise<PaginatedList<T>> {
     const response = await this.request<{
       data: T[];
@@ -149,7 +148,7 @@ export abstract class BaseResource {
     }>({
       method: 'GET',
       path,
-      query: params,
+      query: params as unknown as Record<string, unknown>,
     });
 
     return {

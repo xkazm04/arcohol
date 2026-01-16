@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { auditLogger, reminderScheduler } from '@/features/invoices';
 
 // POST: Mark an invoice as paid (manual payment recording)
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -93,6 +94,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }).catch(() => {
       // RPC might not exist, ignore error
     });
+
+    // Log audit event
+    await auditLogger.logPaid(id, {
+      type: 'user',
+      id: user.id,
+      email: user.email || undefined,
+    }, {
+      txHash,
+      payerAddress,
+    });
+
+    // Cancel any pending reminders
+    await reminderScheduler.cancelReminders(id);
 
     return NextResponse.json({
       success: true,

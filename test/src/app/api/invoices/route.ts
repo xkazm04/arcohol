@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { auditLogger, invoiceNumbering } from '@/features/invoices';
 
 // GET: List all invoices
 export async function GET(request: NextRequest) {
@@ -186,15 +187,21 @@ export async function POST(request: NextRequest) {
     const feeAmount = amount * feeRate;
     const netAmount = amount - feeAmount;
 
-    // Generate reference number
-    const year = new Date().getFullYear();
-    const { count } = await supabase
-      .from('invoices')
-      .select('*', { count: 'exact', head: true })
-      .eq('organization_id', organizationId)
-      .gte('created_at', `${year}-01-01`);
+    // Generate reference number using legal numbering service
+    let reference: string;
+    try {
+      reference = await invoiceNumbering.getNextInvoiceNumber(organizationId);
+    } catch {
+      // Fallback to simple numbering if service fails
+      const year = new Date().getFullYear();
+      const { count } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+        .gte('created_at', `${year}-01-01`);
 
-    const reference = `INV-${year}-${String((count || 0) + 1).padStart(4, '0')}`;
+      reference = `INV-${year}-${String((count || 0) + 1).padStart(4, '0')}`;
+    }
 
     // Prepare buyer snapshot
     const buyer = {
@@ -239,6 +246,22 @@ export async function POST(request: NextRequest) {
     if (createError) {
       throw createError;
     }
+
+    // Log audit event
+    await auditLogger.logCreated(
+      invoice.id,
+      {
+        reference: invoice.reference,
+        amount: parseFloat(invoice.amount),
+        status: invoice.status,
+        customerId: invoice.customer_id,
+      },
+      {
+        type: 'user',
+        id: user.id,
+        email: user.email || undefined,
+      }
+    );
 
     return NextResponse.json({
       invoice: {

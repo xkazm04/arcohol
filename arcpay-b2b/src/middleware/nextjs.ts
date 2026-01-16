@@ -4,7 +4,7 @@
  */
 
 import type { NextRequest } from 'next/server';
-import type { ArcPayB2BConfig, WebhookEvent, WebhookHandlers } from '../types';
+import type { WebhookEvent, WebhookHandlers } from '../types';
 import { ArcPayB2B } from '../client';
 import { WebhookSignatureError } from '../utils/errors';
 

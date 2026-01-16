@@ -118,6 +118,50 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+## Dashboard Module Dependencies
+
+The following table shows the integration status of each dashboard module:
+
+| Module | Data Source | Supabase | Internal SDKs | External Packages |
+|--------|-------------|----------|---------------|-------------------|
+| **Overview** | Mixed | Yes (org) | — | — |
+| **Transactions** | Real | Yes | — | — |
+| **Invoices** | Real | Yes | — | x402 (pay modal) |
+| **Disputes** | Real | Yes | b2b (hooks) | — |
+| **Disputes/Analytics** | Real | Yes | b2b (analytics) | — |
+| **Treasury** | Real | Yes | b2b (treasury) | — |
+| **Subscriptions** | Real | Yes | b2b (x402) | x402 (micro) |
+| **API Keys** | Real | Yes | — | — |
+| **x402** | Real | Yes | b2b (middleware) | @circlefin, x402 |
+| **Webhooks** | Mock | No | — | — |
+| **CrossChain** | Mock | No | — | — |
+| **Agents** | Mock | No | — | — |
+| **Settings** | Mock | No | — | — |
+| **Credits** | Redirect | — | — | — |
+
+### Legend
+- **Data Source**: `Real` = Supabase queries, `Mock` = hardcoded demo data, `Mixed` = combination
+- **Supabase**: Whether the module directly queries Supabase tables
+- **Internal SDKs**: Packages from `../arcpay-*` directories (b2b, x402, react)
+- **External Packages**: Third-party packages (@circlefin, x402 protocol)
+
+### Internal SDK Packages (arc/)
+
+| Package | Directory | Used By |
+|---------|-----------|---------|
+| @arcpay/b2b | `../arcpay-b2b` | Disputes, x402, Treasury, Invoices, Subscriptions |
+| @arcpay/x402 | `../arcpay-x402` | — (not integrated) |
+| @arcpay/react | `../arcpay-react` | Sandbox demos |
+
+### External Package Dependencies
+
+| Package | Purpose | Used In |
+|---------|---------|---------|
+| `@circlefin/x402-batching` | Circle's x402 Gateway SDK | x402 (referenced, not active) |
+| `x402` | HTTP 402 protocol | Invoices (X402PayModal) |
+
+---
+
 ## Dashboard Features
 
 ### Overview (`/dashboard`)

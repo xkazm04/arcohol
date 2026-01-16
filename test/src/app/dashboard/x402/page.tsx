@@ -25,8 +25,15 @@ import {
   useUsageStats,
   type CreditAccount,
 } from '@/features/api-credits';
+import {
+  useGatewayConfig,
+  useGatewayPayments,
+  SUPPORTED_NETWORKS,
+} from '@/features/x402-gateway';
 
 export default function ApiCreditsPage() {
+  // Billing mode: 'credits' (database-based) or 'gateway' (x402 gasless)
+  const [billingMode, setBillingMode] = useState<'credits' | 'gateway'>('credits');
   const [viewMode, setViewMode] = useState<'endpoints' | 'accounts' | 'transactions'>('endpoints');
   const [showNewEndpointModal, setShowNewEndpointModal] = useState(false);
   const [showNewAccountModal, setShowNewAccountModal] = useState(false);
@@ -35,11 +42,23 @@ export default function ApiCreditsPage() {
   const [codeTab, setCodeTab] = useState('middleware');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Real data hooks
+  // Real data hooks - Credits mode
   const { accounts, total: totalAccounts, isLoading: accountsLoading, createAccount, depositCredits, fetchAccounts } = useCreditAccounts();
   const { endpoints, isLoading: endpointsLoading, createEndpoint, fetchEndpoints } = useCreditEndpoints();
   const { transactions, isLoading: transactionsLoading, fetchTransactions } = useCreditTransactions();
   const { stats, isLoading: statsLoading } = useUsageStats({ period: '30d' });
+
+  // Real data hooks - Gateway mode
+  const { config: gatewayConfig, isLoading: gatewayConfigLoading, createConfig: createGatewayConfig, updateConfig: updateGatewayConfig } = useGatewayConfig();
+  const { payments: gatewayPayments, stats: gatewayStats, isLoading: gatewayPaymentsLoading } = useGatewayPayments();
+
+  // Gateway config form state
+  const [showGatewayConfigModal, setShowGatewayConfigModal] = useState(false);
+  const [gatewayForm, setGatewayForm] = useState({
+    sellerAddress: '',
+    networks: ['eip155:5042002'],
+    description: '',
+  });
 
   // Computed values
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
@@ -91,11 +110,32 @@ export default function ApiCreditsPage() {
             <h1 className="text-lg font-semibold text-white" style={{ textShadow: '0 0 20px rgba(6, 182, 212, 0.3)' }}>
               API Monetization
             </h1>
-            <p className="text-xs text-slate-400">Credit-based access & pay-per-request billing</p>
+            <p className="text-xs text-slate-400">
+              {billingMode === 'credits' ? 'Credit-based access & pay-per-request billing' : 'Gasless micropayments via Circle Gateway'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
+          {/* Billing Mode Toggle */}
+          <div className="flex items-center bg-slate-800/50 rounded-lg p-0.5 border border-slate-700/50">
+            {(['credits', 'gateway'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setBillingMode(mode)}
+                className={`px-3 py-1.5 text-[10px] font-medium rounded-md transition-all ${
+                  billingMode === mode
+                    ? mode === 'gateway'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {mode === 'credits' ? 'Credits' : 'x402 Gateway'}
+              </button>
+            ))}
+          </div>
+          {/* View Mode Toggle - only show in credits mode */}
+          {billingMode === 'credits' && (
           <div className="flex items-center bg-slate-800/50 rounded-lg p-0.5 border border-slate-700/50">
             {(['endpoints', 'accounts', 'transactions'] as const).map((mode) => (
               <button
@@ -111,17 +151,268 @@ export default function ApiCreditsPage() {
               </button>
             ))}
           </div>
-          <GlowButton
-            onClick={() => viewMode === 'accounts' ? setShowNewAccountModal(true) : setShowNewEndpointModal(true)}
-          >
-            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            {viewMode === 'accounts' ? 'New Account' : 'New Endpoint'}
-          </GlowButton>
+          )}
+          {billingMode === 'credits' ? (
+            <GlowButton
+              onClick={() => viewMode === 'accounts' ? setShowNewAccountModal(true) : setShowNewEndpointModal(true)}
+            >
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {viewMode === 'accounts' ? 'New Account' : 'New Endpoint'}
+            </GlowButton>
+          ) : (
+            <GlowButton
+              accent="purple"
+              onClick={() => setShowGatewayConfigModal(true)}
+            >
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {gatewayConfig ? 'Configure Gateway' : 'Setup Gateway'}
+            </GlowButton>
+          )}
         </div>
       </motion.div>
 
+      {/* Gateway Mode View */}
+      {billingMode === 'gateway' && (
+        <>
+          {/* Gateway Stats Row */}
+          <motion.div variants={staggerContainer} className="grid grid-cols-4 gap-3">
+            <StatCard
+              label="Total Revenue (30d)"
+              value={gatewayPaymentsLoading ? '...' : `$${(gatewayStats?.totalRevenue || 0).toLocaleString()}`}
+              accent="purple"
+              delay={0.1}
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1" />
+                </svg>
+              }
+            />
+            <StatCard
+              label="Payments (30d)"
+              value={gatewayPaymentsLoading ? '...' : (gatewayStats?.totalPayments || 0).toString()}
+              accent="cyan"
+              delay={0.15}
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              }
+            />
+            <StatCard
+              label="Unique Payers"
+              value={gatewayPaymentsLoading ? '...' : (gatewayStats?.uniquePayers || 0).toString()}
+              accent="emerald"
+              delay={0.2}
+            />
+            <StatCard
+              label="Avg. Payment"
+              value={gatewayPaymentsLoading ? '...' : `$${(gatewayStats?.avgPaymentAmount || 0).toFixed(2)}`}
+              accent="amber"
+              delay={0.25}
+            />
+          </motion.div>
+
+          {/* Gateway How It Works Banner */}
+          <motion.div
+            variants={listItem}
+            className="relative bg-gradient-to-r from-purple-500/10 via-slate-900 to-cyan-500/10 rounded-lg border border-purple-500/20 p-4 overflow-hidden"
+          >
+            <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#a855f7_1px,transparent_1px),linear-gradient(to_bottom,#a855f7_1px,transparent_1px)] bg-[size:20px_20px]" />
+            <div className="relative grid grid-cols-4 gap-4">
+              {[
+                { step: '1', title: 'Customer Deposits', desc: 'USDC into Gateway (one-time)' },
+                { step: '2', title: 'Sign Payment', desc: 'Gasless signature per request' },
+                { step: '3', title: 'Instant Access', desc: 'API responds immediately' },
+                { step: '4', title: 'Batch Settlement', desc: 'Circle batches on-chain' },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center shrink-0 border border-purple-500/30">
+                    <span className="text-purple-400 font-mono font-bold text-sm">{item.step}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-white">{item.title}</div>
+                    <div className="text-[10px] text-slate-500">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Gateway Config Status */}
+          <motion.div variants={listItem} className="grid grid-cols-12 gap-4">
+            {/* Gateway Status Card */}
+            <div className="col-span-5">
+              <Card accent="purple" delay={0.3}>
+                <CardHeader title="Gateway Configuration" />
+                <CardBody>
+                  {gatewayConfigLoading ? (
+                    <div className="text-center text-slate-500 text-xs py-4">Loading...</div>
+                  ) : gatewayConfig ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500 uppercase">Status</span>
+                        <StatusBadge
+                          status={gatewayConfig.enabled ? 'active' : 'inactive'}
+                          label={gatewayConfig.enabled ? 'Enabled' : 'Disabled'}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500 uppercase">Seller Address</span>
+                        <span className="text-xs font-mono text-white">
+                          {gatewayConfig.seller_address.slice(0, 6)}...{gatewayConfig.seller_address.slice(-4)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500 uppercase">Networks</span>
+                        <div className="flex gap-1">
+                          {gatewayConfig.networks.map((net: string) => (
+                            <span key={net} className="px-1.5 py-0.5 text-[9px] font-mono rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                              {SUPPORTED_NETWORKS.find(n => n.network === net)?.name || net}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center mx-auto mb-3 border border-purple-500/30">
+                        <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-white mb-1">No Gateway Configured</div>
+                      <div className="text-xs text-slate-500 mb-4">Set up your seller address to start accepting gasless payments</div>
+                      <GlowButton accent="purple" onClick={() => setShowGatewayConfigModal(true)}>
+                        Setup Gateway
+                      </GlowButton>
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            </div>
+
+            {/* Recent Payments */}
+            <div className="col-span-7">
+              <Card accent="cyan" delay={0.35}>
+                <CardHeader
+                  title="Recent Gateway Payments"
+                  action={<span className="text-[10px] text-slate-500">{gatewayPayments.length} payments</span>}
+                />
+                <DataList>
+                  {gatewayPaymentsLoading ? (
+                    <DataListItem>
+                      <div className="text-center text-slate-500 text-xs py-4">Loading payments...</div>
+                    </DataListItem>
+                  ) : gatewayPayments.length === 0 ? (
+                    <DataListItem>
+                      <div className="text-center text-slate-500 text-xs py-4">
+                        No payments yet. Payments will appear here when customers pay for your API endpoints.
+                      </div>
+                    </DataListItem>
+                  ) : gatewayPayments.slice(0, 5).map((payment) => (
+                    <DataListItem key={payment.id}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center border border-emerald-500/30">
+                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="text-xs text-white font-mono">
+                              {payment.payer.slice(0, 6)}...{payment.payer.slice(-4)}
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              {SUPPORTED_NETWORKS.find(n => n.network === payment.network)?.name || payment.network}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm font-mono text-emerald-400">${payment.amount}</div>
+                          <div className="text-[10px] text-slate-600">
+                            {new Date(payment.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </DataListItem>
+                  ))}
+                </DataList>
+              </Card>
+            </div>
+          </motion.div>
+
+          {/* Integration Guide for Gateway */}
+          <motion.div variants={listItem}>
+            <Card accent="purple" delay={0.4}>
+              <CardHeader
+                title="x402 Gateway Integration"
+                action={
+                  <FilterTabs
+                    tabs={[
+                      { id: 'express', label: 'Express' },
+                      { id: 'nextjs', label: 'Next.js' },
+                    ]}
+                    activeTab={codeTab}
+                    onChange={setCodeTab}
+                  />
+                }
+              />
+              <CardBody>
+                <pre className="text-[10px] font-mono text-slate-400 overflow-x-auto leading-relaxed bg-slate-950/50 p-3 rounded-lg">
+                  {codeTab === 'express' ? `import express from 'express';
+import { x402Middleware } from '@arcpay/b2b/middleware/express';
+
+const app = express();
+
+const x402 = x402Middleware({
+  sellerAddress: '${gatewayConfig?.seller_address || '0x...'}',
+});
+
+// Free endpoint
+app.get('/api/free', (req, res) => {
+  res.json({ message: 'Free content' });
+});
+
+// Paid endpoint - $0.01 per request (gasless!)
+app.get('/api/premium', x402.require('$0.01'), (req, res) => {
+  res.json({
+    premium: 'content',
+    payment: req.x402Payment, // Payment info attached
+  });
+});` : `// app/api/premium/route.ts
+import { withX402 } from '@arcpay/b2b/middleware/nextjs';
+
+export const GET = withX402({
+  sellerAddress: '${gatewayConfig?.seller_address || '0x...'}',
+  price: '$0.05',
+})(async (request, { payment }) => {
+  return Response.json({
+    premium: 'content',
+    payer: payment.payer,
+    amount: payment.amount,
+  });
+});`}
+                </pre>
+                <div className="mt-3 p-2 bg-purple-500/5 rounded border border-purple-500/20">
+                  <div className="text-[10px] text-purple-400 mb-1">Zero Gas for Customers</div>
+                  <div className="text-[9px] text-slate-500">
+                    Customers deposit USDC once to Gateway, then sign payment messages (gasless) for each API call. Circle batches settlements on-chain.
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          </motion.div>
+        </>
+      )}
+
+      {/* Credits Mode View */}
+      {billingMode === 'credits' && (
+        <>
       {/* Stats Row */}
       <motion.div variants={staggerContainer} className="grid grid-cols-4 gap-3">
         <StatCard
@@ -275,16 +566,15 @@ export default function ApiCreditsPage() {
               />
               <CardBody>
                 <pre className="text-[10px] font-mono text-slate-400 overflow-x-auto leading-relaxed bg-slate-950/50 p-3 rounded-lg">
-                  {codeTab === 'middleware' ? `import { withCredits } from '@arcpay/credits';
-import { createCreditsClient } from '@arcpay/credits/client';
+                  {codeTab === 'middleware' ? `import { withCredits } from '@arcpay/b2b/middleware/nextjs';
+import { ArcPayB2B } from '@arcpay/b2b';
 
-const db = createCreditsClient(supabase);
+const client = new ArcPayB2B({ apiKey: 'arc_...' });
 
 export const GET = withCredits({
-  db,
-  organizationId: 'org_...',
+  client,
   getCustomerId: (req) =>
-    req.headers['x-customer-id'],
+    req.headers.get('x-customer-id'),
   onDeduction: async (info) => {
     console.log(\`Charged \${info.amount}\`);
   }
@@ -292,14 +582,13 @@ export const GET = withCredits({
   // credits.accountId
   // credits.balanceAfter
   return NextResponse.json({ data });
-});` : `import { creditsMiddleware } from '@arcpay/credits';
-import { createCreditsClient } from '@arcpay/credits/client';
+});` : `import { creditsMiddleware } from '@arcpay/b2b/middleware/express';
+import { ArcPayB2B } from '@arcpay/b2b';
 
-const db = createCreditsClient(supabase);
+const client = new ArcPayB2B({ apiKey: 'arc_...' });
 
 app.use('/api/v1/*', creditsMiddleware({
-  db,
-  organizationId: 'org_...',
+  client,
   getCustomerId: (req) =>
     req.headers['x-customer-id'],
 }));
@@ -465,6 +754,108 @@ app.get('/api/v1/data', (req, res) => {
           </Card>
         </motion.div>
       )}
+        </>
+      )}
+
+      {/* Gateway Config Modal */}
+      <Modal
+        isOpen={showGatewayConfigModal}
+        onClose={() => setShowGatewayConfigModal(false)}
+        title={gatewayConfig ? 'Configure Gateway' : 'Setup Gateway'}
+        subtitle="Configure your seller address for x402 gasless payments"
+        size="md"
+        footer={
+          <>
+            <GlowButton variant="secondary" onClick={() => setShowGatewayConfigModal(false)}>Cancel</GlowButton>
+            <GlowButton
+              accent="purple"
+              disabled={isSubmitting || !gatewayForm.sellerAddress}
+              onClick={async () => {
+                setIsSubmitting(true);
+                try {
+                  if (gatewayConfig) {
+                    await updateGatewayConfig({
+                      sellerAddress: gatewayForm.sellerAddress,
+                      networks: gatewayForm.networks,
+                      description: gatewayForm.description,
+                    });
+                  } else {
+                    await createGatewayConfig({
+                      sellerAddress: gatewayForm.sellerAddress,
+                      networks: gatewayForm.networks,
+                      description: gatewayForm.description,
+                    });
+                  }
+                  setShowGatewayConfigModal(false);
+                } catch (err) {
+                  console.error('Failed to save gateway config:', err);
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+            >
+              {isSubmitting ? 'Saving...' : gatewayConfig ? 'Update' : 'Enable Gateway'}
+            </GlowButton>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <FormInput
+            label="Seller Address"
+            value={gatewayForm.sellerAddress}
+            onChange={(e) => setGatewayForm({ ...gatewayForm, sellerAddress: e.target.value })}
+            placeholder="0x..."
+            hint="Your wallet address to receive payments"
+          />
+
+          <div>
+            <div className="text-[10px] text-slate-500 uppercase mb-2">Accepted Networks</div>
+            <div className="space-y-2">
+              {SUPPORTED_NETWORKS.map((network) => (
+                <label key={network.network} className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={gatewayForm.networks.includes(network.network)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setGatewayForm({ ...gatewayForm, networks: [...gatewayForm.networks, network.network] });
+                      } else {
+                        setGatewayForm({ ...gatewayForm, networks: gatewayForm.networks.filter(n => n !== network.network) });
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500"
+                  />
+                  <div className="flex-1">
+                    <div className="text-xs text-white">{network.name}</div>
+                    <div className="text-[10px] text-slate-500">{network.network}</div>
+                  </div>
+                  {network.batchingEnabled && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      Gasless
+                    </span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <FormInput
+            label="Description (optional)"
+            value={gatewayForm.description}
+            onChange={(e) => setGatewayForm({ ...gatewayForm, description: e.target.value })}
+            placeholder="API access for premium content"
+            hint="Shown to customers in payment requests"
+          />
+
+          <div className="p-3 bg-purple-500/5 rounded-lg border border-purple-500/20">
+            <div className="text-[10px] text-purple-400 mb-1">How It Works</div>
+            <div className="text-[9px] text-slate-500">
+              Customers deposit USDC to Circle Gateway once, then pay for API requests by signing messages (gasless).
+              Circle batches these payments on-chain, minimizing gas costs.
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* New Endpoint Modal */}
       <Modal

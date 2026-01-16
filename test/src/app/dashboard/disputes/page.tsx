@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   StatCard,
   Card,
@@ -13,8 +13,17 @@ import {
   staggerContainer,
   listItem,
 } from '@/components/dashboard';
-import { useDisputes, useDisputeActions } from '@/features/disputes';
+import { useDisputes, useDisputeActions, useDisputeConfig } from '@/features/disputes';
 import { useOrganization } from '@/features/shared';
+import { DisputeConfigTab } from './_components';
+
+type TabType = 'disputes' | 'analytics' | 'config';
+
+const tabs: { id: TabType; label: string }[] = [
+  { id: 'disputes', label: 'Disputes' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'config', label: 'Configure' },
+];
 
 const statusMapping: Record<string, 'pending' | 'active' | 'paid' | 'failed' | 'sent' | 'viewed' | 'overdue'> = {
   filed: 'pending',
@@ -34,12 +43,21 @@ const categoryLabels: Record<string, string> = {
 };
 
 export default function DisputesPage() {
+  const router = useRouter();
   const { organization, isLoading: orgLoading } = useOrganization();
   const { disputes, isLoading, error, stats, refetch } = useDisputes({
     organizationId: organization?.id,
   });
   const { respondToDispute, resolveDispute, evaluateDispute, isLoading: actionLoading } = useDisputeActions();
+  const {
+    config,
+    isLoading: configLoading,
+    updateConfig,
+    isUpdating,
+    toggleProtection,
+  } = useDisputeConfig();
 
+  const [activeTab, setActiveTab] = useState<TabType>('disputes');
   const [selectedDispute, setSelectedDispute] = useState<typeof disputes[0] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -125,65 +143,95 @@ export default function DisputesPage() {
       animate="visible"
       className="space-y-4 max-w-5xl"
     >
-      {/* Compact Header */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between"
       >
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-white">Disputes</h1>
-          <motion.div
-            animate={{
-              boxShadow: ['0 0 10px rgba(168,85,247,0.3)', '0 0 20px rgba(168,85,247,0.5)', '0 0 10px rgba(168,85,247,0.3)'],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="flex items-center gap-1.5 px-2 py-1 bg-purple-500/10 rounded border border-purple-500/30 text-purple-400"
+          <h1
+            className="text-lg font-semibold text-white"
+            style={{ textShadow: '0 0 20px rgba(249, 115, 22, 0.3)' }}
           >
-            <motion.svg
-              animate={{ rotate: [0, 10, -10, 0] }}
+            Dispute Management
+          </h1>
+          {config?.enabled && (
+            <motion.div
+              animate={{
+                boxShadow: ['0 0 0 0 rgba(168, 85, 247, 0)', '0 0 10px 2px rgba(168, 85, 247, 0.2)', '0 0 0 0 rgba(168, 85, 247, 0)']
+              }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border bg-purple-500/10 border-purple-500/30"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </motion.svg>
-            <span className="text-[10px] font-medium">AI Active</span>
-          </motion.div>
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-purple-500"
+              />
+              <span className="text-[10px] font-mono text-purple-400">AI Active</span>
+            </motion.div>
+          )}
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="text-slate-500">Open <span className="text-white font-mono ml-1">{stats.open}</span></div>
-          <div className="text-slate-500">Win Rate <span className="text-cyan-400 font-mono ml-1">{stats.winRate.toFixed(0)}%</span></div>
-          <div className="text-slate-500">Avg <span className="text-white font-mono ml-1">{stats.avgResolutionDays}d</span></div>
-          <Link href="/dashboard/disputes/analytics">
-            <GlowButton variant="secondary" size="sm">
-              <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Analytics
-            </GlowButton>
-          </Link>
+
+        <div className="flex items-center gap-3">
+          {/* Stats */}
+          <div className="flex items-center gap-4 text-xs mr-2">
+            <div className="text-slate-500">Open <span className="text-white font-mono ml-1">{stats.open}</span></div>
+            <div className="text-slate-500">Win Rate <span className="text-cyan-400 font-mono ml-1">{stats.winRate.toFixed(0)}%</span></div>
+            <div className="text-slate-500">Avg <span className="text-white font-mono ml-1">{stats.avgResolutionDays}d</span></div>
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="flex items-center bg-slate-800/50 rounded-lg p-0.5 border border-slate-700/50">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => tab.id === 'analytics' ? router.push('/dashboard/disputes/analytics') : setActiveTab(tab.id)}
+                className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  activeTab === tab.id
+                    ? tab.id === 'config'
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : tab.id === 'analytics'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                    : 'text-slate-500 hover:text-slate-300 border border-transparent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
-        {['all', 'filed', 'under_review', 'awaiting_merchant_response', 'escalated', 'resolved'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-              statusFilter === status
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
-          </button>
-        ))}
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'config' ? (
+        <DisputeConfigTab
+          config={config}
+          isLoading={configLoading}
+          updateConfig={updateConfig}
+          isUpdating={isUpdating}
+          toggleProtection={toggleProtection}
+        />
+      ) : (
+        <>
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-2">
+            {['all', 'filed', 'under_review', 'awaiting_merchant_response', 'escalated', 'resolved'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                  statusFilter === status
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
+              </button>
+            ))}
+          </div>
 
       {/* Disputes List */}
       <Card accent="cyan" delay={0.1} className="overflow-hidden">
@@ -445,6 +493,8 @@ export default function DisputesPage() {
           </div>
         )}
       </Modal>
+        </>
+      )}
     </motion.div>
   );
 }

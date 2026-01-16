@@ -6,17 +6,20 @@
 import type { ArcPayB2BConfig } from './types';
 import { validateSecretKey } from './utils/validation';
 import {
+  BillingResource,
   CreditsResource,
   DisputesResource,
   GatewayResource,
   TreasuryResource,
   WebhooksResource,
   UsdyResource,
+  X402Resource,
   UsageMeter,
   DisputeProtection,
   MerchantGateway,
   Treasury,
   Usdy,
+  X402Gateway,
 } from './resources';
 
 /**
@@ -48,6 +51,11 @@ import {
  */
 export class ArcPayB2B {
   /**
+   * Billing resource for recurring subscription billing operations
+   */
+  readonly billing: BillingResource;
+
+  /**
    * Credits resource for credit account and usage metering operations
    */
   readonly credits: CreditsResource;
@@ -58,7 +66,7 @@ export class ArcPayB2B {
   readonly disputes: DisputesResource;
 
   /**
-   * Gateway resource for invoice and batch payment operations
+   * Gateway resource for invoice, batch payment, and delivery operations
    */
   readonly gateway: GatewayResource;
 
@@ -78,6 +86,11 @@ export class ArcPayB2B {
   readonly usdy: UsdyResource;
 
   /**
+   * x402 resource for gasless micropayments and cross-chain operations
+   */
+  readonly x402: X402Resource;
+
+  /**
    * SDK configuration
    */
   private readonly config: ArcPayB2BConfig;
@@ -89,12 +102,14 @@ export class ArcPayB2B {
     this.config = config;
 
     // Initialize resources
+    this.billing = new BillingResource(config);
     this.credits = new CreditsResource(config);
     this.disputes = new DisputesResource(config);
     this.gateway = new GatewayResource(config);
     this.treasury = new TreasuryResource(config);
     this.webhooks = new WebhooksResource(config);
     this.usdy = new UsdyResource(config);
+    this.x402 = new X402Resource(config);
   }
 
   // ==========================================================================
@@ -227,6 +242,40 @@ export class ArcPayB2B {
     return new Usdy({
       usdy: this.usdy,
       treasuryId: options.treasuryId,
+    });
+  }
+
+  /**
+   * Create an x402 Gateway helper for gasless micropayments
+   *
+   * @example
+   * ```typescript
+   * const gateway = arcpay.createX402Gateway({
+   *   organizationId: 'org_xxx',
+   *   sellerAddress: '0x...',
+   * });
+   *
+   * // Get configuration
+   * const config = await gateway.getConfig();
+   *
+   * // List received payments
+   * const payments = await gateway.listPayments({ limit: 10 });
+   *
+   * // Get Gateway balance
+   * const balance = await gateway.getBalance();
+   *
+   * // Cross-chain withdrawal
+   * const withdrawal = await gateway.withdraw({
+   *   amount: '500.00',
+   *   destinationChain: 'base',
+   * });
+   * ```
+   */
+  createX402Gateway(options: { organizationId: string; sellerAddress: string }): X402Gateway {
+    return new X402Gateway({
+      x402: this.x402,
+      organizationId: options.organizationId,
+      sellerAddress: options.sellerAddress,
     });
   }
 

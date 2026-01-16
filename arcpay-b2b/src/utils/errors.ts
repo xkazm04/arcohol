@@ -102,10 +102,12 @@ export class RateLimitError extends ArcPayB2BError {
  * Network error (connection failures)
  */
 export class NetworkError extends ArcPayB2BError {
+  readonly originalError?: Error;
+
   constructor(message = 'Network error occurred', cause?: Error) {
     super(message, 'network_error', undefined, { cause: cause?.message });
     this.name = 'NetworkError';
-    this.cause = cause;
+    this.originalError = cause;
   }
 }
 

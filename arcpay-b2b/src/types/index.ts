@@ -180,3 +180,22 @@ export type {
   UsdyEventType,
   UsdyEvent,
 } from './usdy';
+
+// x402 Gateway types
+export type {
+  GatewayBalance,
+  CombinedBalances,
+  SupportedNetwork,
+  PaymentRequirements,
+  PaymentPayload,
+  VerifyResult,
+  SettleResult,
+  CrossChainWithdrawParams,
+  CrossChainWithdrawResult,
+  GatewaySellerConfig,
+  UpsertSellerConfigParams,
+  GatewayPayment,
+  ListGatewayPaymentsParams,
+  X402EventType,
+  X402Event,
+} from './x402';
